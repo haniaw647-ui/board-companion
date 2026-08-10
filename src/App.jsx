@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Send, Sparkles, ClipboardList, Layers, ListChecks, RotateCcw,
-  GraduationCap, ChevronDown, Loader2, Trash2, GitBranch, RefreshCw, X,
+  GraduationCap, ChevronDown, Loader2, Trash2, GitBranch, RefreshCw, X, Flame,
 } from "lucide-react";
 import { supabase } from "./lib/supabaseClient";
 import * as db from "./lib/db";
@@ -10,6 +10,7 @@ import {
   computePieData,
   overallPct as overallPctFor,
   weakTopics as weakTopicsFor,
+  computeStreak,
   PIE_COLORS,
 } from "./lib/progress";
 import { SUBJECTS } from "./lib/subjects";
@@ -795,6 +796,7 @@ export default function BoardCompanion() {
   const pieData = computePieData(attempts, grade, SUBJECTS);
   const overallPct = overallPctFor(attempts, grade, SUBJECTS);
   const focusAreas = weakTopicsFor(attempts, grade, SUBJECTS, 5);
+  const streak = computeStreak(attempts); // spans both grades — showing up is what counts
 
   // Jumps to a subject's quiz tab with the topic prefilled (not
   // auto-submitted — generation still needs the student's one click, same
@@ -882,6 +884,19 @@ export default function BoardCompanion() {
                 </button>
               ))}
             </div>
+            {streak.current > 0 && (
+              <div
+                style={{ ...styles.streakChip, opacity: streak.activeToday ? 1 : 0.6 }}
+                title={
+                  streak.activeToday
+                    ? `${streak.current}-day streak — longest: ${streak.longest}`
+                    : `${streak.current}-day streak — take a quiz today to keep it going (longest: ${streak.longest})`
+                }
+              >
+                <Flame size={14} color={streak.activeToday ? "#0F6B4F" : "#93A683"} />
+                {streak.current}
+              </div>
+            )}
             <div style={styles.nameForm}>
               <div style={styles.studentBadge}>{studentName || "Student"}</div>
               <button
@@ -1433,6 +1448,11 @@ const styles = {
     borderRadius: 999, fontSize: 12, cursor: "pointer", fontFamily: "Arial, sans-serif",
   },
   gradeBtnActive: { background: "#0F6B4F", color: "#FBFDFA", fontWeight: 700 },
+  streakChip: {
+    display: "flex", alignItems: "center", gap: 4, background: "#F5FAF3", border: "1px solid #C9DDC3",
+    borderRadius: 999, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, color: "#1B3B2F",
+    fontFamily: "Arial, sans-serif", cursor: "default",
+  },
   studentBadge: {
     background: "#B6CC8E", color: "#2F3D30", padding: "6px 14px", borderRadius: 999,
     fontSize: 12, fontFamily: "Arial, sans-serif", fontWeight: 600,

@@ -66,3 +66,45 @@ export function weakTopics(attempts, grade, subjects, limit = 5) {
     .sort((a, b) => a.pct - b.pct || b.lastDate.localeCompare(a.lastDate))
     .slice(0, limit);
 }
+
+// Daily study streak, derived from quiz-attempt dates across every grade
+// and subject combined (a streak is about showing up, not any one
+// subject). No separate "activity log" exists — `taken_at` on `attempts`
+// is the only per-day timestamp this app records — so a streak day is
+// "took at least one quiz that day." Each subject's attempt list is
+// capped to the most recent 10 (see rowsToAttemptsMap in db.js), which
+// only undercounts a streak for a student doing more than 10 quizzes in
+// a single subject within the current streak window — an acceptable
+// approximation rather than a reason to change that cap.
+export function computeStreak(attempts) {
+  const dates = new Set();
+  Object.values(attempts).forEach((bySubject) => {
+    Object.values(bySubject).forEach((list) => {
+      list.forEach((a) => { if (a.date) dates.add(a.date); });
+    });
+  });
+  const sorted = [...dates].sort();
+  if (sorted.length === 0) return { current: 0, longest: 0, activeToday: false };
+
+  const dayDiff = (a, b) => Math.round((new Date(b + "T00:00:00") - new Date(a + "T00:00:00")) / 86400000);
+
+  let longest = 1, run = 1;
+  for (let i = 1; i < sorted.length; i++) {
+    run = dayDiff(sorted[i - 1], sorted[i]) === 1 ? run + 1 : 1;
+    if (run > longest) longest = run;
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const last = sorted[sorted.length - 1];
+  const gapToToday = dayDiff(last, today);
+
+  let current = 0;
+  if (gapToToday <= 1) {
+    current = 1;
+    for (let i = sorted.length - 1; i > 0; i--) {
+      if (dayDiff(sorted[i - 1], sorted[i]) === 1) current += 1;
+      else break;
+    }
+  }
+  return { current, longest, activeToday: gapToToday === 0 };
+}

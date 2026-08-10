@@ -26,6 +26,19 @@ Features already built:
 - Visual mind map (dark horizontal collapsible tree, zoom controls, SVG)
 - Progress report tab: per-subject mastery pie chart + marksheet-style
   summary, computed from quiz attempt history
+- **Focus Areas**: on the Progress Report, the student's weakest quiz
+  topics (rolled up across all attempts, not just per-subject averages)
+  with a one-click "Practice this" that jumps straight into that topic's
+  quiz — see `weakTopics()` in `src/lib/progress.js`
+- **Daily streak**: a flame chip in the header showing consecutive days
+  with at least one quiz attempt, spanning both grades. Purely derived
+  client-side from `attempts[*][*][].date` (no new table/schema) — see
+  `computeStreak()` in `src/lib/progress.js`. A day counts if *any*
+  subject/grade has a quiz attempt that day; there's no separate
+  "activity log," so chatting/notes/flashcards without ever quizzing
+  doesn't build a streak — that's a deliberate scope limit to avoid a
+  schema change, not an oversight, but worth knowing if it's ever
+  extended to count broader activity.
 - Delete menu with granular options (chat / current activity / progress
   history), not a single blanket "clear everything"
 - **Real accounts** via Supabase Auth (email/password) + Postgres, replacing
