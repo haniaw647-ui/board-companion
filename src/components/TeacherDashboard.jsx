@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { ChevronDown, LogOut } from "lucide-react";
 import * as db from "../lib/db";
-import { subjectMastery as masteryFor, computePieData, overallPct as overallPctFor, PIE_COLORS } from "../lib/progress";
-import { SUBJECTS } from "../lib/subjects";
+import { subjectMastery as masteryFor, computePieData, overallPct as overallPctFor, computeAchievements, PIE_COLORS } from "../lib/progress";
+import { SUBJECTS, subjectsForGrade } from "../lib/subjects";
 import ProgressReport from "./ProgressReport";
 
 // Teacher-only view: a roster of students with per-student progress/mastery.
@@ -21,6 +21,7 @@ export default function TeacherDashboard({ styles, teacherId, teacherName, onSig
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
   const [copied, setCopied] = useState(false);
+  const gradeSubjects = subjectsForGrade(grade);
 
   useEffect(() => {
     (async () => {
@@ -95,7 +96,7 @@ export default function TeacherDashboard({ styles, teacherId, teacherName, onSig
           ) : (
             roster.map((student) => {
               const attempts = attemptsByUser[student.id] || {};
-              const pct = overallPctFor(attempts, grade, SUBJECTS);
+              const pct = overallPctFor(attempts, grade, gradeSubjects);
               const isOpen = expandedId === student.id;
               return (
                 <div key={student.id} style={{ borderBottom: "1px solid #C9DDC3" }}>
@@ -130,11 +131,12 @@ export default function TeacherDashboard({ styles, teacherId, teacherName, onSig
                       styles={styles}
                       grade={grade}
                       studentName={student.name}
-                      pieData={computePieData(attempts, grade, SUBJECTS)}
+                      pieData={computePieData(attempts, grade, gradeSubjects)}
                       overallPct={pct}
-                      subjects={SUBJECTS}
+                      subjects={gradeSubjects}
                       mastery={(subj) => masteryFor(attempts, grade, subj)}
                       attempts={attempts}
+                      achievements={computeAchievements(attempts, SUBJECTS)}
                     />
                   )}
                 </div>

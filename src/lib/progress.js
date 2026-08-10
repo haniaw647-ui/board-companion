@@ -108,3 +108,37 @@ export function computeStreak(attempts) {
   }
   return { current, longest, activeToday: gapToToday === 0 };
 }
+
+// Milestone badges, computed fresh on every render rather than stored — all
+// the inputs (attempts, streak) already exist, so persisting "earned" state
+// separately would just be a second source of truth that could drift.
+// Spans every grade in `attempts` (not just the currently-selected one),
+// matching computeStreak's "showing up is what counts" scope.
+export function computeAchievements(attempts, subjects) {
+  const grades = Object.keys(attempts);
+  let totalAttempts = 0;
+  let anyPerfect = false;
+  const masteredKeys = new Set();
+
+  grades.forEach((g) => {
+    subjects.forEach((s) => {
+      const list = (attempts[g] && attempts[g][s.id]) || [];
+      totalAttempts += list.length;
+      list.forEach((a) => { if (a.total > 0 && a.score === a.total) anyPerfect = true; });
+      const m = subjectMastery(attempts, g, s.id);
+      if (m !== null && m >= 70) masteredKeys.add(`${g}:${s.id}`);
+    });
+  });
+
+  const { longest } = computeStreak(attempts);
+
+  return [
+    { id: "first-quiz", label: "First Steps", description: "Take your first quiz", earned: totalAttempts >= 1 },
+    { id: "streak-3", label: "On a Roll", description: "Reach a 3-day study streak", earned: longest >= 3 },
+    { id: "streak-7", label: "Committed", description: "Reach a 7-day study streak", earned: longest >= 7 },
+    { id: "subject-master", label: "Subject Master", description: "Master a subject (70%+ average)", earned: masteredKeys.size >= 1 },
+    { id: "well-rounded", label: "Well-Rounded", description: "Master 3 different subjects", earned: masteredKeys.size >= 3 },
+    { id: "perfect-score", label: "Perfect Score", description: "Score 100% on a quiz", earned: anyPerfect },
+    { id: "quiz-regular", label: "Quiz Regular", description: "Take 10 quizzes total", earned: totalAttempts >= 10 },
+  ];
+}
