@@ -1272,15 +1272,14 @@ function NotesCard({ data }) {
 
 /* ---------- Study focus timer (Pomodoro-style, purely client-side) ---------- */
 
-const TIMER_MODES = {
-  focus: { label: "Focus", minutes: 25 },
-  short: { label: "Short break", minutes: 5 },
-  long: { label: "Long break", minutes: 15 },
-};
+const TIMER_MODE_LABELS = { focus: "Focus", short: "Short break", long: "Long break" };
+const TIMER_DEFAULT_MINUTES = { focus: 25, short: 5, long: 15 };
+const TIMER_MINUTE_OPTIONS = [5, 10, 15, 20, 25, 30, 45, 50, 60, 90];
 
 function StudyTimer({ onClose }) {
   const [mode, setMode] = useState("focus");
-  const [secondsLeft, setSecondsLeft] = useState(TIMER_MODES.focus.minutes * 60);
+  const [durations, setDurations] = useState(TIMER_DEFAULT_MINUTES); // minutes per mode, student-editable
+  const [secondsLeft, setSecondsLeft] = useState(TIMER_DEFAULT_MINUTES.focus * 60);
   const [running, setRunning] = useState(false);
 
   useEffect(() => {
@@ -1300,12 +1299,18 @@ function StudyTimer({ onClose }) {
   function switchMode(next) {
     setMode(next);
     setRunning(false);
-    setSecondsLeft(TIMER_MODES[next].minutes * 60);
+    setSecondsLeft(durations[next] * 60);
+  }
+
+  function changeDuration(minutes) {
+    setDurations((d) => ({ ...d, [mode]: minutes }));
+    setRunning(false);
+    setSecondsLeft(minutes * 60);
   }
 
   function reset() {
     setRunning(false);
-    setSecondsLeft(TIMER_MODES[mode].minutes * 60);
+    setSecondsLeft(durations[mode] * 60);
   }
 
   const mm = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
@@ -1315,13 +1320,13 @@ function StudyTimer({ onClose }) {
   return (
     <div className="fade-in" style={styles.timerCard}>
       <div style={styles.timerModeRow}>
-        {Object.entries(TIMER_MODES).map(([key, m]) => (
+        {Object.keys(TIMER_MODE_LABELS).map((key) => (
           <button
             key={key}
             onClick={() => switchMode(key)}
             style={{ ...styles.timerModeBtn, ...(mode === key ? styles.timerModeBtnActive : {}) }}
           >
-            {m.label}
+            {TIMER_MODE_LABELS[key]}
           </button>
         ))}
         <button onClick={onClose} style={{ ...styles.topicCancelBtn, marginLeft: "auto" }} title="Hide timer">
@@ -1331,12 +1336,24 @@ function StudyTimer({ onClose }) {
       <div style={{ ...styles.timerDisplay, color: done ? "#C1594A" : "#1B3B2F" }}>
         {done ? "Time's up!" : `${mm}:${ss}`}
       </div>
+      {!running && (
+        <select
+          value={durations[mode]}
+          onChange={(e) => changeDuration(Number(e.target.value))}
+          style={styles.quizLengthSelect}
+          title={`${TIMER_MODE_LABELS[mode]} duration`}
+        >
+          {TIMER_MINUTE_OPTIONS.map((n) => (
+            <option key={n} value={n}>{n} min</option>
+          ))}
+        </select>
+      )}
       <div style={styles.timerControls}>
         <button
           onClick={() => (done ? reset() : setRunning((r) => !r))}
           style={styles.topicGoBtn}
         >
-          {done ? "Start again" : running ? "Pause" : secondsLeft === TIMER_MODES[mode].minutes * 60 ? "Start" : "Resume"}
+          {done ? "Start again" : running ? "Pause" : secondsLeft === durations[mode] * 60 ? "Start" : "Resume"}
         </button>
         <button onClick={reset} style={styles.deleteMenuCancel}>Reset</button>
       </div>
