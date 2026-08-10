@@ -7,11 +7,11 @@ to re-explain the project history in every session.
 
 A study companion web app for **Punjab Board Intermediate students (Grade
 11 & 12)**, built for a specific student to eventually let classmates use
-too. Subjects: Physics, Chemistry, Biology, English, Urdu, Islamic Studies,
-Tarjumah-tul-Quran.
+too. Subjects: Physics, Chemistry, Biology, Computer Science, Mathematics,
+English, Urdu, Islamic Studies, Tarjumah-tul-Quran.
 
 Features already built:
-- Home/landing page (boho aesthetic — see Design section)
+- Home/landing page (see Design section for current palette)
 - Per-subject AI tutor chat (Claude API via `/api/claude`)
 - Auto-generated quizzes, flashcards, revision notes, mind maps — all
   **topic-locked**: the student must type an exact topic/chapter (e.g. "1st
@@ -121,7 +121,7 @@ this verification pass.
 ## CRITICAL constraint: copyright on the textbooks
 
 The student uploaded the official PECTAA (Punjab) Grade 11 textbooks for
-all 7 subjects. Every one of them carries this notice:
+all 9 subjects. Every one of them carries this notice:
 
 > "No part of this textbook can be copied, translated, reproduced or used
 > for preparation of test papers, guidebooks, keynotes and helping books."
@@ -142,6 +142,28 @@ chapter title lists (factual structure, not the book's prose) — see
 - If a future feature would need the actual textbook prose (e.g. "quote
   the exact definition from the book"), don't build it — that's exactly
   what the notice prohibits.
+
+**Extracting a TOC from a scanned (image-only) PDF:** the Computer Science
+and Mathematics PECTAA PDFs have no text layer (`pypdf`/the `Read` tool's
+default text extraction returns nothing or just a watermark) — they're
+scanned page images. Confirm this first (`Read` with `pages:` on a text
+page; if it's blank/watermark-only on a page that clearly has visible text,
+it's scanned). This machine didn't have `poppler-utils` (needed by the
+`Read` tool to rasterize PDF pages) or an OCR engine installed; both were
+added via `winget install oschwartz10612.Poppler` and
+`winget install tesseract-ocr.tesseract`. Because winget updates the
+system PATH but the already-running host process doesn't pick that up
+until it restarts, call the installed binaries by their full path instead
+of waiting for a restart (found via `find` under
+`AppData/Local/Microsoft/WinGet/Packages` and `Program Files/Tesseract-OCR`).
+Render pages to PNG with `pdftoppm -png`, then either read a real
+table-of-contents page directly with the `Read` tool (Math had one — by
+far the fastest path when it exists) or, if the book jumps straight from
+front matter into chapter 1 (Computer Science had no TOC page), OCR the
+first few lines of every rendered page with `tesseract --psm 6` and grep
+the combined output for "UNIT"/"Unit" to find each chapter-banner page,
+then visually confirm each exact title with `Read` on that page's PNG
+before trusting the OCR text (OCR garbles some titles).
 
 ## Design theme
 

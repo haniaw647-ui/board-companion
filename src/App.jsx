@@ -3,6 +3,7 @@ import {
   Atom, FlaskConical, Dna, BookOpenText, Languages, Moon, ScrollText,
   Send, Sparkles, ClipboardList, Layers, ListChecks, RotateCcw,
   GraduationCap, ChevronDown, Loader2, Trash2, GitBranch, RefreshCw, X,
+  Cpu, Sigma,
 } from "lucide-react";
 import { supabase } from "./lib/supabaseClient";
 import * as db from "./lib/db";
@@ -26,6 +27,8 @@ const SUBJECTS = [
   { id: "urdu", label: "Urdu", urdu: "اردو", icon: Languages },
   { id: "islamiat", label: "Islamic Studies", urdu: "اسلامیات", icon: Moon },
   { id: "tarjumah", label: "Tarjumah-tul-Quran", urdu: "ترجمۃ القرآن", icon: ScrollText },
+  { id: "computerscience", label: "Computer Science", urdu: "کمپیوٹر سائنس", icon: Cpu },
+  { id: "math", label: "Mathematics", urdu: "ریاضی", icon: Sigma },
 ];
 
 const CHAT_EXAMPLE_PROMPT = {
@@ -36,6 +39,8 @@ const CHAT_EXAMPLE_PROMPT = {
   urdu: "Explain a poem's theme",
   islamiat: "Explain a Hadith's teaching",
   tarjumah: "Explain a verse's meaning",
+  computerscience: "Explain how a for loop works",
+  math: "Explain how to solve a quadratic equation",
 };
 
 const TOPIC_EXAMPLE = {
@@ -46,6 +51,8 @@ const TOPIC_EXAMPLE = {
   urdu: "Ghazal",
   islamiat: "Pillars of Islam",
   tarjumah: "Surah Al-Fatiha",
+  computerscience: "Python Programming",
+  math: "Quadratic Equations",
 };
 
 const QUICK_ACTIONS = [
@@ -120,6 +127,33 @@ const SYLLABUS_11 = {
     "Surah Aal-e-Imran: Ayat 26-27, Ayat 102-104, Ayat 123-125, Ayat 134, Ayat 190-194",
     "Surah Al-Anfal: Ayat 1-4, Ayat 15, Ayat 45-48",
     "Surah At-Taubah: Ayat 24, Ayat 38-41, Ayat 60, Ayat 71-72, Ayat 100, Ayat 119, Ayat 128-129",
+  ],
+  computerscience: [
+    "1. Introduction to Software Development",
+    "2. Python Programming",
+    "3. Algorithms and Problem Solving",
+    "4. Computational Structures",
+    "5. Data Analytics",
+    "6. Emerging Technologies",
+    "7. Legal and Ethical Aspects of Computing System",
+    "8. Online Research and Digital Literacy",
+    "9. Entrepreneurship in Digital Age",
+  ],
+  math: [
+    "1. Complex Numbers",
+    "2. Functions and Graphs",
+    "3. Theory of Quadratic Functions",
+    "4. Matrices and Determinants",
+    "5. Partial Fractions",
+    "6. Sequences and Series",
+    "7. Permutations and Combinations",
+    "8. Mathematical Inductions and Binomial Theorem",
+    "9. Division of Polynomials",
+    "10. Trigonometric Identities",
+    "11. Trigonometric Functions and their Graphs",
+    "12. Limit and Continuity",
+    "13. Differentiation",
+    "14. Vectors in Space",
   ],
 };
 
@@ -266,7 +300,7 @@ function BohoShapeStrip() {
 /* ---------- Home / landing page ---------- */
 
 const FEATURES = [
-  { title: "Tutor chat", body: "Ask any topic across all 7 subjects and get board-style, syllabus-aligned explanations.", icon: Sparkles, target: "chat" },
+  { title: "Tutor chat", body: "Ask any topic across all 9 subjects and get board-style, syllabus-aligned explanations.", icon: Sparkles, target: "chat" },
   { title: "Practice quizzes", body: "Auto-generated MCQs on high-yield topics, graded instantly.", icon: ListChecks, target: "quiz" },
   { title: "Progress report", body: "A subject-by-subject mastery pie chart, saved privately to you.", icon: ClipboardList, target: "progress" },
 ];
@@ -310,7 +344,8 @@ function HomePage({ session, studentName, onEnter }) {
         <div style={styles.heroText}>Welcome.</div>
         <div style={styles.heroSub}>
           A Punjab Board study companion for Grade 11 &amp; 12 — Biology, Chemistry, Physics,
-          English, Urdu, Islamic Studies &amp; Tarjumah-tul-Quran, all in one place.
+          Computer Science, Mathematics, English, Urdu, Islamic Studies &amp; Tarjumah-tul-Quran,
+          all in one place.
         </div>
       </div>
 
