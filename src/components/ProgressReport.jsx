@@ -1,12 +1,28 @@
 import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { Rocket, Flame, Trophy, Award, Star, Target, ListChecks } from "lucide-react";
 import { PIE_COLORS } from "../lib/progress";
+
+// One icon per achievement id from computeAchievements() in lib/progress.js
+// — kept here rather than in the data layer since it's purely presentational.
+const ACHIEVEMENT_ICONS = {
+  "first-quiz": Rocket,
+  "streak-3": Flame,
+  "streak-7": Trophy,
+  "subject-master": Award,
+  "well-rounded": Star,
+  "perfect-score": Target,
+  "quiz-regular": ListChecks,
+};
 
 // Pure presentational — reused for both the logged-in student's own
 // "Progress report" tab and, per-student, inside the teacher dashboard.
 // `weakTopics` + `onPractice` are optional: the teacher dashboard omits
 // them, since "practice this" only makes sense from the student's own view.
-export default function ProgressReport({ styles, grade, studentName, pieData, overallPct, subjects, mastery, attempts, weakTopics, onPractice }) {
+// `achievements` is optional too, but shown in both views (read-only, no
+// callback needed) since a teacher seeing a student's earned badges isn't
+// a privacy concern — it's the same mastery data already on this page.
+export default function ProgressReport({ styles, grade, studentName, pieData, overallPct, subjects, mastery, attempts, weakTopics, onPractice, achievements }) {
   return (
     <div style={{ padding: "4px 4px 24px" }}>
       <div style={styles.dmc}>
@@ -38,6 +54,27 @@ export default function ProgressReport({ styles, grade, studentName, pieData, ov
                 </button>
               </div>
             ))}
+          </div>
+        )}
+
+        {achievements && achievements.length > 0 && (
+          <div style={styles.achievementsCard}>
+            <div style={styles.focusTitle}>Achievements</div>
+            <div style={styles.achievementsGrid}>
+              {achievements.map((a) => {
+                const Icon = ACHIEVEMENT_ICONS[a.id];
+                return (
+                  <div
+                    key={a.id}
+                    style={{ ...styles.badge, ...(a.earned ? styles.badgeEarned : styles.badgeLocked) }}
+                    title={a.description}
+                  >
+                    <Icon size={18} />
+                    <span>{a.label}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 

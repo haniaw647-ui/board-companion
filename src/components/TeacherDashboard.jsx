@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ChevronDown, LogOut } from "lucide-react";
 import * as db from "../lib/db";
-import { subjectMastery as masteryFor, computePieData, overallPct as overallPctFor, PIE_COLORS } from "../lib/progress";
+import { subjectMastery as masteryFor, computePieData, overallPct as overallPctFor, computeAchievements, PIE_COLORS } from "../lib/progress";
 import { SUBJECTS } from "../lib/subjects";
 import ProgressReport from "./ProgressReport";
 
@@ -135,6 +135,7 @@ export default function TeacherDashboard({ styles, teacherId, teacherName, onSig
                       subjects={SUBJECTS}
                       mastery={(subj) => masteryFor(attempts, grade, subj)}
                       attempts={attempts}
+                      achievements={computeAchievements(attempts, SUBJECTS)}
                     />
                   )}
                 </div>
