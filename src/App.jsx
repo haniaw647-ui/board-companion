@@ -821,6 +821,7 @@ export default function BoardCompanion() {
       <style>{`
         @keyframes stampIn { from { transform: scale(1.4) rotate(-8deg); opacity: 0 } to { transform: scale(1) rotate(-8deg); opacity: 1 } }
         .stamp { animation: stampIn 0.5s ease-out; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-thumb { background: #A9C39F; border-radius: 4px; }
         .fade-in { animation: fadein .35s ease; }
@@ -1280,9 +1281,12 @@ function estWidth(text, fontSize = 12.5) {
 }
 
 function MindMapView({ data }) {
+  // Keyed by branch index, not label text — two AI-generated branches can
+  // legitimately share a label (e.g. two "Examples" branches), and keying
+  // by text would make toggling one silently toggle both.
   const [expanded, setExpanded] = useState(() => {
     const init = {};
-    (data.branches || []).forEach((b) => { init[b.label] = true; });
+    (data.branches || []).forEach((b, i) => { init[i] = true; });
     return init;
   });
   const [zoom, setZoom] = useState(1);
@@ -1294,7 +1298,7 @@ function MindMapView({ data }) {
   const rootW = estWidth(data.topic, 14);
   const branches = data.branches || [];
 
-  const rows = branches.map((b) => (expanded[b.label] && b.children?.length ? b.children.length : 1));
+  const rows = branches.map((b, i) => (expanded[i] && b.children?.length ? b.children.length : 1));
   const total = rows.reduce((a, b) => a + b, 0) || 1;
   const totalHeight = total * rowH + 20;
 
@@ -1304,7 +1308,7 @@ function MindMapView({ data }) {
     const bandTop = cursor * rowH + 10;
     const bandCenter = bandTop + (rCount * rowH) / 2;
     cursor += rCount;
-    const isOpen = expanded[b.label] && b.children?.length;
+    const isOpen = expanded[i] && b.children?.length;
     const children = isOpen
       ? b.children.map((c, j) => ({ text: c, y: bandTop + rowH * j + rowH / 2, w: estWidth(c, 11.5) }))
       : [];
@@ -1314,8 +1318,8 @@ function MindMapView({ data }) {
   const rootY = totalHeight / 2;
   const svgWidth = xChild + 260;
 
-  function toggle(label) {
-    setExpanded((e) => ({ ...e, [label]: !e[label] }));
+  function toggle(i) {
+    setExpanded((e) => ({ ...e, [i]: !e[i] }));
   }
 
   return (
@@ -1324,9 +1328,9 @@ function MindMapView({ data }) {
         <button
           style={styles.mmCtrlBtn}
           onClick={() => {
-            const allOpen = branches.every((b) => expanded[b.label]);
+            const allOpen = branches.every((b, i) => expanded[i]);
             const next = {};
-            branches.forEach((b) => { next[b.label] = !allOpen; });
+            branches.forEach((b, i) => { next[i] = !allOpen; });
             setExpanded(next);
           }}
           title="Expand/collapse all"
@@ -1370,7 +1374,7 @@ function MindMapView({ data }) {
           </g>
           {/* branch nodes */}
           {positioned.map((b, i) => (
-            <g key={"b-" + i} style={{ cursor: b.hasChildren ? "pointer" : "default" }} onClick={() => b.hasChildren && toggle(b.label)}>
+            <g key={"b-" + i} style={{ cursor: b.hasChildren ? "pointer" : "default" }} onClick={() => b.hasChildren && toggle(i)}>
               <rect x={xBranch} y={b.y - 16} width={b.w} height={32} rx={9} fill="#3A3F52" stroke="#5B6280" />
               <text x={xBranch + b.w / 2} y={b.y + 4.5} textAnchor="middle" fontSize="12" fill="#F0ECE2" fontFamily="Arial, sans-serif">
                 {b.label}
@@ -1379,7 +1383,7 @@ function MindMapView({ data }) {
                 <g transform={`translate(${xBranch + b.w + 6}, ${b.y - 8})`}>
                   <circle cx="8" cy="8" r="9" fill="#5B6280" />
                   <text x="8" y="11.5" textAnchor="middle" fontSize="10" fill="#F0ECE2" fontFamily="Arial, sans-serif">
-                    {expanded[b.label] ? "–" : "+"}
+                    {expanded[i] ? "–" : "+"}
                   </text>
                 </g>
               )}
