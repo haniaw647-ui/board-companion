@@ -14,7 +14,7 @@ import {
   computeAchievements,
   PIE_COLORS,
 } from "./lib/progress";
-import { SUBJECTS } from "./lib/subjects";
+import { SUBJECTS, subjectsForGrade } from "./lib/subjects";
 import AuthScreen from "./components/AuthScreen";
 import TeacherDashboard from "./components/TeacherDashboard";
 import ProgressReport from "./components/ProgressReport";
@@ -477,7 +477,7 @@ function HomePage({ session, studentName, onEnter }) {
 
       <BohoShapeStrip />
 
-      <div style={styles.featureRow} ref={subjectsRef}>
+      <div style={styles.featureRow}>
         {FEATURES.map((f) => {
           const Icon = f.icon;
           return (
@@ -507,7 +507,7 @@ function HomePage({ session, studentName, onEnter }) {
             companion can be shared with classmates without mixing up progress.
           </div>
 
-          <div style={styles.aboutSubjectGrid}>
+          <div style={styles.aboutSubjectGrid} ref={subjectsRef}>
             {SUBJECTS.map((s) => {
               const Icon = s.icon;
               return (
@@ -794,11 +794,24 @@ export default function BoardCompanion() {
   function subjectMastery(subj) {
     return masteryFor(attempts, grade, subj);
   }
-  const pieData = computePieData(attempts, grade, SUBJECTS);
-  const overallPct = overallPctFor(attempts, grade, SUBJECTS);
-  const focusAreas = weakTopicsFor(attempts, grade, SUBJECTS, 5);
+  const gradeSubjects = subjectsForGrade(grade);
+  const pieData = computePieData(attempts, grade, gradeSubjects);
+  const overallPct = overallPctFor(attempts, grade, gradeSubjects);
+  const focusAreas = weakTopicsFor(attempts, grade, gradeSubjects, 5);
   const streak = computeStreak(attempts); // spans both grades — showing up is what counts
   const achievements = computeAchievements(attempts, SUBJECTS); // also spans both grades
+
+  // Islamic Studies (Grade 11 only) and Pakistan Studies (Grade 12 only)
+  // don't exist in the other grade — if the currently-viewed subject isn't
+  // offered in the grade being switched to, fall back to the first subject
+  // that is, rather than leaving the sidebar's selection on a subject that
+  // just disappeared from the list.
+  function switchGrade(g) {
+    setGrade(g);
+    if (!subjectsForGrade(g).some((s) => s.id === subjectId)) {
+      setSubjectId(subjectsForGrade(g)[0].id);
+    }
+  }
 
   // Jumps to a subject's quiz tab with the topic prefilled (not
   // auto-submitted — generation still needs the student's one click, same
@@ -879,7 +892,7 @@ export default function BoardCompanion() {
               {[11, 12].map((g) => (
                 <button
                   key={g}
-                  onClick={() => setGrade(g)}
+                  onClick={() => switchGrade(g)}
                   style={{ ...styles.gradeBtn, ...(grade === g ? styles.gradeBtnActive : {}) }}
                 >
                   Grade {g}
@@ -955,7 +968,7 @@ export default function BoardCompanion() {
         {/* Subject register (sidebar) */}
         <aside style={styles.sidebar}>
           <div style={styles.sidebarLabel}>Subjects</div>
-          {SUBJECTS.map((s) => {
+          {gradeSubjects.map((s) => {
             const Icon = s.icon;
             const m = subjectMastery(s.id);
             return (
@@ -1196,7 +1209,7 @@ export default function BoardCompanion() {
               studentName={studentName}
               pieData={pieData}
               overallPct={overallPct}
-              subjects={SUBJECTS}
+              subjects={gradeSubjects}
               mastery={subjectMastery}
               attempts={attempts}
               weakTopics={focusAreas}
@@ -1703,7 +1716,7 @@ const styles = {
 
   /* Home / landing page */
   homePage: {
-    background: "#F3FAF0", minHeight: "100%", padding: "18px 28px 40px",
+    background: "#F3FAF0", flex: 1, padding: "18px 28px 40px",
     display: "flex", flexDirection: "column",
   },
   homeNav: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 },
