@@ -31,3 +31,38 @@ export function overallPct(attempts, grade, subjects) {
   if (scored.length === 0) return null;
   return Math.round(scored.reduce((a, b) => a + b, 0) / scored.length);
 }
+
+// Every quiz attempt is tagged with the exact topic it was generated for
+// (see quiz.topic / db.insertAttempt), so mastery can be rolled up per
+// topic, not just per subject. Surfaces the weakest few (< 70%, most
+// recent first among ties) so a student has a concrete next thing to do
+// instead of just a subject-level percentage.
+export function weakTopics(attempts, grade, subjects, limit = 5) {
+  const byTopic = [];
+  subjects.forEach((s) => {
+    const list = (attempts[grade] && attempts[grade][s.id]) || [];
+    const rolled = {};
+    list.forEach((a) => {
+      if (!a.topic) return;
+      const row = rolled[a.topic] || (rolled[a.topic] = { scoreSum: 0, totalSum: 0, count: 0, lastDate: "" });
+      row.scoreSum += a.score;
+      row.totalSum += a.total;
+      row.count += 1;
+      if (a.date && a.date > row.lastDate) row.lastDate = a.date;
+    });
+    Object.entries(rolled).forEach(([topic, r]) => {
+      byTopic.push({
+        subjectId: s.id,
+        subjectLabel: s.label,
+        topic,
+        pct: Math.round((r.scoreSum / r.totalSum) * 100),
+        attempts: r.count,
+        lastDate: r.lastDate,
+      });
+    });
+  });
+  return byTopic
+    .filter((t) => t.pct < 70)
+    .sort((a, b) => a.pct - b.pct || b.lastDate.localeCompare(a.lastDate))
+    .slice(0, limit);
+}

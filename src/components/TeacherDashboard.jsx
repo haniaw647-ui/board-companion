@@ -2,17 +2,8 @@ import React, { useEffect, useState } from "react";
 import { ChevronDown, LogOut } from "lucide-react";
 import * as db from "../lib/db";
 import { subjectMastery as masteryFor, computePieData, overallPct as overallPctFor, PIE_COLORS } from "../lib/progress";
+import { SUBJECTS } from "../lib/subjects";
 import ProgressReport from "./ProgressReport";
-
-const SUBJECTS = [
-  { id: "physics", label: "Physics" },
-  { id: "chemistry", label: "Chemistry" },
-  { id: "biology", label: "Biology" },
-  { id: "english", label: "English" },
-  { id: "urdu", label: "Urdu" },
-  { id: "islamiat", label: "Islamic Studies" },
-  { id: "tarjumah", label: "Tarjumah-tul-Quran" },
-];
 
 // Teacher-only view: a roster of students with per-student progress/mastery.
 // Deliberately never imports or calls anything chat-related — that stays

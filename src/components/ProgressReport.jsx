@@ -4,7 +4,9 @@ import { PIE_COLORS } from "../lib/progress";
 
 // Pure presentational — reused for both the logged-in student's own
 // "Progress report" tab and, per-student, inside the teacher dashboard.
-export default function ProgressReport({ styles, grade, studentName, pieData, overallPct, subjects, mastery, attempts }) {
+// `weakTopics` + `onPractice` are optional: the teacher dashboard omits
+// them, since "practice this" only makes sense from the student's own view.
+export default function ProgressReport({ styles, grade, studentName, pieData, overallPct, subjects, mastery, attempts, weakTopics, onPractice }) {
   return (
     <div style={{ padding: "4px 4px 24px" }}>
       <div style={styles.dmc}>
@@ -20,6 +22,24 @@ export default function ProgressReport({ styles, grade, studentName, pieData, ov
             </div>
           )}
         </div>
+
+        {onPractice && weakTopics && weakTopics.length > 0 && (
+          <div style={styles.focusCard}>
+            <div style={styles.focusTitle}>Focus areas</div>
+            <div style={styles.focusSub}>Your lowest-scoring topics — practice these next.</div>
+            {weakTopics.map((t) => (
+              <div key={`${t.subjectId}-${t.topic}`} style={styles.focusRow}>
+                <div style={styles.focusInfo}>
+                  <div style={styles.focusTopic}>{t.topic}</div>
+                  <div style={styles.focusMeta}>{t.subjectLabel} · {t.pct}% · {t.attempts} quiz{t.attempts === 1 ? "" : "zes"}</div>
+                </div>
+                <button style={styles.focusBtn} onClick={() => onPractice(t.subjectId, t.topic)}>
+                  Practice this
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div style={styles.reportGrid}>
           <div style={styles.pieWrap}>

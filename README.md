@@ -116,11 +116,11 @@ values as your `.env`), and redeploy.
 
 ## Known gaps / things to build next
 
-- **Grade 12 syllabus**: only Grade 11 chapter lists (from the uploaded
-  PECTAA textbooks' tables of contents) are wired into the tutor's system
-  prompts. Grade 12 falls back to general knowledge until those books are
-  processed the same way (extract chapter titles only, same method as
-  Grade 11 — never full text, see the copyright note below).
+- **Grade 12 syllabus**: wired up for Physics, Chemistry, Biology, Math,
+  English, Computer Science, Urdu, and Pakistan Studies. Islamiat and
+  Tarjumah-tul-Quran have no Grade 12 source PDF yet — process them the
+  same way (extract chapter titles only, never full text, see the
+  copyright note below) once those books are uploaded.
 - **Copyright**: the tutor is intentionally instructed to explain concepts
   in its own words rather than quote textbook prose — the source PECTAA
   textbooks explicitly restrict use for "test papers, guidebooks, keynotes

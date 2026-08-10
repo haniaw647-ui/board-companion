@@ -8,7 +8,11 @@ to re-explain the project history in every session.
 A study companion web app for **Punjab Board Intermediate students (Grade
 11 & 12)**, built for a specific student to eventually let classmates use
 too. Subjects: Physics, Chemistry, Biology, Computer Science, Mathematics,
-English, Urdu, Islamic Studies, Tarjumah-tul-Quran.
+English, Urdu, Islamic Studies, Pakistan Studies, Tarjumah-tul-Quran.
+Pakistan Studies is Grade-12-only — Punjab's Grade 11 curriculum doesn't
+have it, so `SYLLABUS_11` has no `pakstudy` entry (Grade 11 students just
+never see chapter data for it, same as any subject/grade with nothing
+confirmed yet).
 
 Features already built:
 - Home/landing page (see Design section for current palette)
@@ -126,6 +130,15 @@ all 9 subjects. Every one of them carries this notice:
 > "No part of this textbook can be copied, translated, reproduced or used
 > for preparation of test papers, guidebooks, keynotes and helping books."
 
+**Source PDFs live in `Downloads\<Subject>\`** (e.g. `Downloads\Physics\`,
+`Downloads\Urdu\`), one folder per subject, each holding both the Grade 11
+and Grade 12 PECTAA PDF (plus a duplicate "- Copy" file from the original
+download, harmless, not cleaned up). `Downloads\Math\` and
+`Downloads\Computer Science\` were created first (Grade 11 phase); the
+rest were organized later once Grade 12 PDFs arrived. If a new subject's
+PDF gets uploaded, put it in Downloads root and it can be filed into a
+matching folder when work on it starts — no need to reorganize proactively.
+
 **What was extracted and IS safe to use:** only the table-of-contents /
 chapter title lists (factual structure, not the book's prose) — see
 `SYLLABUS_11` in `src/App.jsx`. This lets the tutor correctly map "chapter
@@ -137,8 +150,11 @@ chapter title lists (factual structure, not the book's prose) — see
 - Every AI system prompt that teaches content (tutor chat, notes,
   flashcards, mind maps, quizzes) must keep the existing instruction to
   explain "in your own words" / not quote or paraphrase textbook prose.
-- If asked to add Grade 12 content, extract chapter-title lists only (same
-  method as Grade 11 — see git history / prior session), never full text.
+- Grade 12 content must follow the same rule: chapter-title lists only,
+  never full text. See `SYLLABUS_12` in `src/App.jsx` — Physics, Chemistry,
+  Biology, Math, English, Computer Science, and the new Pakistan Studies
+  subject are done this way; Urdu is intentionally partial (see below);
+  Islamiat and Tarjumah-tul-Quran have no Grade 12 source PDF yet.
 - If a future feature would need the actual textbook prose (e.g. "quote
   the exact definition from the book"), don't build it — that's exactly
   what the notice prohibits.
@@ -164,6 +180,47 @@ first few lines of every rendered page with `tesseract --psm 6` and grep
 the combined output for "UNIT"/"Unit" to find each chapter-banner page,
 then visually confirm each exact title with `Read` on that page's PNG
 before trusting the OCR text (OCR garbles some titles).
+
+**Grade 12 PECTAA PDFs are encrypted** (owner-password, AES-256 — set by
+the publisher to block editing/printing, not to block reading). `pypdf`
+needs the `cryptography` package to open them at all (`python -m pip
+install cryptography`); Poppler's CLI tools (`pdftotext`, `pdftoppm`,
+`pdfinfo`) handle the encryption natively with no extra setup, so prefer
+those. Most Grade 12 books had a real text layer and either a clean
+`pdftotext`-readable table of contents (Math, Pakistan Studies) or one
+whose columns come out interleaved and need visual confirmation via a
+rendered PNG (Physics, Chemistry) — multi-column TOC layouts reliably
+confuse `pdftotext`'s reading order even when the text itself is fine.
+Biology's Grade 12 PDF has no TOC at all (it's chapters 13+ only, no
+front matter — Grade 11 already covers 1-12, and the PECTAA books number
+chapters continuously across both years); its chapter list came from a
+"chapter-wise weightage" table in the pairing-scheme/model-paper section
+instead, which is worth checking in any book that lacks a normal TOC.
+Computer Science Grade 12 was scanned (CamScanner watermark, no text
+layer) same as Grade 11 CS, and needed the same OCR-for-banner-pages
+approach — but this one did have a clean TOC page once rendered, so check
+for that visually before falling back to OCR-scanning every page.
+
+**Urdu Grade 12 is now complete**, but getting there took a different
+method than every other subject. Its OCR came out badly garbled
+(decorative/stylized script) even after installing the Urdu language pack
+(`urd.traineddata` from `github.com/tesseract-ocr/tessdata`, since
+Tesseract's English-only install has no Urdu support at all), and the book
+has no front-matter table of contents. The fix: every lesson banner is
+individually numbered ("سبق N") on its opening page, **and** the book's
+own glossary appendix ("فرہنگ") at the back repeats every lesson number +
+exact title as section headers — that second list is complete and
+authoritative, and is what the final `SYLLABUS_12.urdu` entry is built
+from. Method: render all pages to PNG with `pdftoppm`, tile them into
+labeled contact sheets with Pillow (a small script, `tile.py`, 12
+pages/sheet) so many pages can be visually scanned per `Read` call instead
+of one at a time, spot each lesson-title page and bio page from the tiles,
+then re-`Read` the individual full-res PNG for any title too small to
+read on the tile and cross-check every title against the glossary index.
+Like Grade 11's Urdu, the book is organized by literary genre — but note
+it's four sections (Hamd-o-Naat / Nasr / Nazm / Ghazal, 2+10+5+5 = 22
+lessons total), not three like Grade 11's Hamd-o-Naat/Nasr/Nazm-o-Ghazal —
+don't assume the two years share a section structure.
 
 ## Design theme
 
@@ -199,15 +256,21 @@ terracotta," "no green," "match the last green") — just ask what's wanted.
 
 ## Known gaps / natural next steps
 
-1. **Grade 12 syllabus not wired up.** Only Grade 11 chapter lists exist
-   (from the uploaded textbooks' tables of contents). Grade 12 falls back
-   to general knowledge and a "confirm the chapter name" prompt. If Grade
-   12 PDFs get uploaded, repeat the TOC-extraction approach — table of
-   contents pages only, never full chapters.
-2. English subject syllabus is a rough 3-strand summary (Vocabulary/Grammar,
-   Oral Communication, Writing Skills across 14 units) rather than named
-   chapters, since the textbook's table of contents is a skills matrix, not
-   chapter titles — this is correct, not a bug.
+1. **Grade 12 syllabus is fully wired up for 8 of the 10 subjects.**
+   Physics, Chemistry, Biology, Math, English, Computer Science, Urdu, and
+   Pakistan Studies (see `SYLLABUS_12` in `src/App.jsx`) are all done.
+   Islamiat and Tarjumah-tul-Quran have no Grade 12 source PDF uploaded
+   yet; if they get uploaded, repeat the same TOC-extraction approach (see
+   the copyright section above for the per-subject techniques, including
+   Urdu's glossary-index method).
+2. Grade 11 English's syllabus is a rough 3-strand summary
+   (Vocabulary/Grammar, Oral Communication, Writing Skills across 14
+   units) rather than named chapters, since that textbook's table of
+   contents is a skills matrix, not chapter titles — this is correct, not
+   a bug. Grade 12 English is different and DOES have 13 named literature
+   units (short stories, poems, a novel) alongside a similar skills
+   matrix — `SYLLABUS_12.english` lists the named units since they're more
+   useful for chapter resolution than a skills summary would be.
 3. **Chat/quiz generation via the real Claude API is untested** (needs a
    real `ANTHROPIC_API_KEY` in `.env`) — see "Backend: Supabase" above
    before trusting it in production.

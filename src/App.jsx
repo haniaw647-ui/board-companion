@@ -1,9 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
-  Atom, FlaskConical, Dna, BookOpenText, Languages, Moon, ScrollText,
   Send, Sparkles, ClipboardList, Layers, ListChecks, RotateCcw,
   GraduationCap, ChevronDown, Loader2, Trash2, GitBranch, RefreshCw, X,
-  Cpu, Sigma,
 } from "lucide-react";
 import { supabase } from "./lib/supabaseClient";
 import * as db from "./lib/db";
@@ -11,25 +9,15 @@ import {
   subjectMastery as masteryFor,
   computePieData,
   overallPct as overallPctFor,
+  weakTopics as weakTopicsFor,
   PIE_COLORS,
 } from "./lib/progress";
+import { SUBJECTS } from "./lib/subjects";
 import AuthScreen from "./components/AuthScreen";
 import TeacherDashboard from "./components/TeacherDashboard";
 import ProgressReport from "./components/ProgressReport";
 
 /* ---------- Static config ---------- */
-
-const SUBJECTS = [
-  { id: "physics", label: "Physics", urdu: "طبیعیات", icon: Atom },
-  { id: "chemistry", label: "Chemistry", urdu: "کیمیا", icon: FlaskConical },
-  { id: "biology", label: "Biology", urdu: "حیاتیات", icon: Dna },
-  { id: "english", label: "English", urdu: "انگریزی", icon: BookOpenText },
-  { id: "urdu", label: "Urdu", urdu: "اردو", icon: Languages },
-  { id: "islamiat", label: "Islamic Studies", urdu: "اسلامیات", icon: Moon },
-  { id: "tarjumah", label: "Tarjumah-tul-Quran", urdu: "ترجمۃ القرآن", icon: ScrollText },
-  { id: "computerscience", label: "Computer Science", urdu: "کمپیوٹر سائنس", icon: Cpu },
-  { id: "math", label: "Mathematics", urdu: "ریاضی", icon: Sigma },
-];
 
 const CHAT_EXAMPLE_PROMPT = {
   physics: "Explain Newton's laws",
@@ -41,6 +29,7 @@ const CHAT_EXAMPLE_PROMPT = {
   tarjumah: "Explain a verse's meaning",
   computerscience: "Explain how a for loop works",
   math: "Explain how to solve a quadratic equation",
+  pakstudy: "Explain Pakistan's constitutional history",
 };
 
 const TOPIC_EXAMPLE = {
@@ -53,6 +42,7 @@ const TOPIC_EXAMPLE = {
   tarjumah: "Surah Al-Fatiha",
   computerscience: "Python Programming",
   math: "Quadratic Equations",
+  pakstudy: "Constitutional Development",
 };
 
 const QUICK_ACTIONS = [
@@ -157,8 +147,142 @@ const SYLLABUS_11 = {
   ],
 };
 
-function syllabusText(subjectId) {
-  const s = SYLLABUS_11[subjectId];
+/* ---------- Real Grade 12 syllabus, same TOC-only extraction method as
+   Grade 11 above. Chapter numbering continues from Grade 11 where the
+   official book does (e.g. Chemistry 17-33, Biology 13-25) — left as-is
+   rather than renumbered, so it matches what's printed in the real
+   textbook. Islamiat and Tarjumah-tul-Quran have no Grade 12 source PDF
+   yet, so they're absent here (the tutor falls back to asking the student
+   to confirm the chapter name, same as any other subject/grade with no
+   confirmed list). ---------- */
+
+const SYLLABUS_12 = {
+  physics: [
+    "1. Thermal Physics",
+    "2. Simple Harmonic Motion",
+    "3. Physical Optics",
+    "4. Electrostatics",
+    "5. Alternating Current",
+    "6. Quantum Physics",
+    "7. Nuclear and Particle Physics",
+    "8. Medical Physics",
+    "9. Space and Environment",
+  ],
+  chemistry: [
+    "17. Group 2 Elements",
+    "18. Transition Metals",
+    "19. Basics of Organic Chemistry",
+    "20. Aromatic Hydrocarbons",
+    "21. Halogenoalkanes",
+    "22. Hydroxy Compounds",
+    "23. Carbonyl Compounds and Carboxylic Acids",
+    "24. Organic Nitrogen Compounds",
+    "25. Organic Synthesis",
+    "26. Polymers",
+    "27. Biochemistry",
+    "28. Chromatography",
+    "29. Spectroscopy-1",
+    "30. Spectroscopy-2 NMR",
+    "31. Materials and Energy",
+    "32. Medicine, Agriculture and Industry",
+    "33. Water",
+  ],
+  biology: [
+    "13. Thermoregulation and Osmoregulation",
+    "14. Human Urinary System",
+    "15. Human Nervous System",
+    "16. Human Endocrine System",
+    "17. Human Reproductive Systems",
+    "18. Inheritance",
+    "19. Chromosomes and DNA",
+    "20. Biotechnology",
+    "21. Immunity",
+    "22. Biostatistics",
+    "23. Pharmacology",
+    "24. Evolution",
+    "25. Ecology",
+  ],
+  math: [
+    "1. Graphical Representation of Functions",
+    "2. Further Differentiation",
+    "3. Integration",
+    "4. Differential Equations",
+    "5. Analytical Geometry",
+    "6. Conic Section",
+    "7. Kinematics",
+    "8. Numerical Method",
+    "9. Inverse Trigonometric Functions and Their Graphs",
+    "10. Solution of Trigonometric Equations",
+    "11. Vector Valued Functions and Their Differentiations",
+  ],
+  english: [
+    "1. Journey to Taif",
+    "2. The Last Lesson",
+    "3. On His Blindness (Poem)",
+    "4. The Power of Digital Learning",
+    "5. The Giving Tree",
+    "6. The Fun They Had",
+    "7. Because I could Not Stop for Death (Poem)",
+    "8. The Devoted Friend",
+    "9. The Doll's House",
+    "10. All the World's a Stage (Poem)",
+    "11. A Letter to God",
+    "12. A Visit to the Swat Valley",
+    "13. The Pearl (Novel)",
+  ],
+  computerscience: [
+    "1. Computer Networks",
+    "2. Computational Thinking & Algorithms",
+    "3. Object Oriented Programming Using Python",
+    "4. Development of Graphical User Interface (GUI)",
+    "5. Code Testing and Debugging",
+    "6. Data and Analysis",
+    "7. Hypothesis Testing",
+    "8. Applications of Computer Science",
+    "9. Cybersecurity and Safe Digital Collaboration",
+  ],
+  pakstudy: [
+    "1. Islam and Pakistan",
+    "2. Constitutional and Political Developments in Pakistan",
+    "3. Constitutional and Administrative System",
+    "4. Pakistan and International Affairs",
+    "5. Education, Sports and Tourism in Pakistan",
+    "6. Resources and Economic Development of Pakistan",
+  ],
+  // Complete (unlike the earlier partial version) — this book has no table
+  // of contents, but every lesson is numbered 1-22 in its own glossary
+  // ("Farhang") index at the back, which was read directly page-by-page
+  // (OCR couldn't handle the decorative script, so this was done visually).
+  urdu: {
+    "Hamd-o-Naat": ["Hamd", "Naat"],
+    "Nasr (Prose)": [
+      "Hijrat-e-Habsha (Migration to Abyssinia)", "Maan Ji", "Kaafi",
+      "Rustam-o-Sohrab (drama)", "Mahshar", "Minar",
+      "Sair Dusre Darvesh Ki (from Bagh-o-Bahar)", "Bahadur Khan Ki Sarguzasht",
+      "Hakeem Ehsanullah Khan", "Nazariya-e-Pakistan",
+    ],
+    "Nazm (Poetry)": [
+      "Insan-e-Kamil ki Barkaat (Hafeez Jalandhari)",
+      "Dastaan Tayyari Mein Bagh Ki (Mir Hasan)",
+      "Sabaat Mein Teri Galiyon Ke... (Faiz Ahmed Faiz)",
+      "Nai Nasl Ka Lauha (Amjad Islam Amjad)",
+      "Main Roze Se Hoon (Syed Zameer Jafri)",
+    ],
+    "Ghazal": [
+      "Ghazal (Khwaja Mir Dard)", "Ghazal (Mirza Ghalib)", "Ghazal (Allama Iqbal)",
+      "Ghazal (Ada Jafri)", "Ghazal (Mohsin Ehsan)",
+    ],
+  },
+};
+
+function syllabusFor(grade, subjectId) {
+  if (grade === 11) return SYLLABUS_11[subjectId];
+  if (grade === 12) return SYLLABUS_12[subjectId];
+  return undefined;
+}
+
+function syllabusText(subjectId, grade) {
+  const s = syllabusFor(grade, subjectId);
   if (!s) return "";
   if (Array.isArray(s)) return s.join("\n");
   return Object.entries(s)
@@ -197,11 +321,11 @@ function languageInstruction(subject) {
 }
 
 function syllabusInstruction(subject, grade, forJson) {
-  const syllabus = grade === 11 ? syllabusText(subject.id) : "";
+  const syllabus = syllabusText(subject.id, grade);
   if (!syllabus) {
     return `\n\nNote: you don't have the confirmed official Grade ${grade} chapter order for this subject yet, so if the student references a chapter number, ask them to confirm the chapter name rather than guessing.`;
   }
-  return `\n\nThe OFFICIAL chapter order for this subject (Grade 11, PECTAA textbook) is:\n${syllabus}\n` +
+  return `\n\nThe OFFICIAL chapter order for this subject (Grade ${grade}, PECTAA textbook) is:\n${syllabus}\n` +
     `When the student refers to a chapter by number or name (e.g. "chapter 1", "chapter 3"), you MUST use THIS list to identify which topic they mean — never guess or substitute a different textbook's order. ` +
     `Do not quote or closely paraphrase textbook prose; teach the topic using your own general knowledge and explanations.`;
 }
@@ -300,7 +424,7 @@ function BohoShapeStrip() {
 /* ---------- Home / landing page ---------- */
 
 const FEATURES = [
-  { title: "Tutor chat", body: "Ask any topic across all 9 subjects and get board-style, syllabus-aligned explanations.", icon: Sparkles, target: "chat" },
+  { title: "Tutor chat", body: "Ask any topic across all 10 subjects and get board-style, syllabus-aligned explanations.", icon: Sparkles, target: "chat" },
   { title: "Practice quizzes", body: "Auto-generated MCQs on high-yield topics, graded instantly.", icon: ListChecks, target: "quiz" },
   { title: "Progress report", body: "A subject-by-subject mastery pie chart, saved privately to you.", icon: ClipboardList, target: "progress" },
 ];
@@ -344,8 +468,8 @@ function HomePage({ session, studentName, onEnter }) {
         <div style={styles.heroText}>Welcome.</div>
         <div style={styles.heroSub}>
           A Punjab Board study companion for Grade 11 &amp; 12 — Biology, Chemistry, Physics,
-          Computer Science, Mathematics, English, Urdu, Islamic Studies &amp; Tarjumah-tul-Quran,
-          all in one place.
+          Computer Science, Mathematics, English, Urdu, Islamic Studies, Pakistan Studies &amp;
+          Tarjumah-tul-Quran, all in one place.
         </div>
       </div>
 
@@ -447,6 +571,7 @@ export default function BoardCompanion() {
   const [flashcardsData, setFlashcardsData] = useState(null); // {topic, cards:[{front,back}]}
   const [mindmapData, setMindmapData] = useState(null); // {topic, branches:[{label,children}]}
   const scrollRef = useRef(null);
+  const pendingPrefillRef = useRef(null); // topic to prefill after a subject switch triggered by "Practice this"
 
   const subject = SUBJECTS.find((s) => s.id === subjectId);
 
@@ -497,8 +622,15 @@ export default function BoardCompanion() {
       setNotesData(null);
       setFlashcardsData(null);
       setMindmapData(null);
-      setPendingAction(null);
-      setTopicDraft("");
+      if (pendingPrefillRef.current) {
+        setTab("study");
+        setPendingAction("quiz");
+        setTopicDraft(pendingPrefillRef.current);
+        pendingPrefillRef.current = null;
+      } else {
+        setPendingAction(null);
+        setTopicDraft("");
+      }
     })();
   }, [grade, subjectId, initLoaded, session]);
 
@@ -662,6 +794,23 @@ export default function BoardCompanion() {
   }
   const pieData = computePieData(attempts, grade, SUBJECTS);
   const overallPct = overallPctFor(attempts, grade, SUBJECTS);
+  const focusAreas = weakTopicsFor(attempts, grade, SUBJECTS, 5);
+
+  // Jumps to a subject's quiz tab with the topic prefilled (not
+  // auto-submitted — generation still needs the student's one click, same
+  // as every other quiz/notes/flashcards/mindmap flow in this app).
+  function practiceTopic(subjId, topic) {
+    if (subjId === subjectId) {
+      setTab("study");
+      setQuiz(null); setQuizResult(null); setQuizAnswers({});
+      setNotesData(null); setFlashcardsData(null); setMindmapData(null);
+      setPendingAction("quiz");
+      setTopicDraft(topic);
+    } else {
+      pendingPrefillRef.current = topic;
+      setSubjectId(subjId);
+    }
+  }
 
   /* ---------- Render ---------- */
 
@@ -829,17 +978,17 @@ export default function BoardCompanion() {
                   <div style={styles.subjectTitle}>{subject.label} <span style={styles.subjectUrdu}>{subject.urdu}</span></div>
                   <div style={styles.subjectMeta}>
                     Grade {grade} · Punjab Textbook Board syllabus
-                    {grade === 11 && SYLLABUS_11[subjectId] && (
+                    {syllabusFor(grade, subjectId) && (
                       <button style={styles.syllabusToggle} onClick={() => setShowSyllabus((v) => !v)}>
                         {showSyllabus ? "Hide chapters" : "View chapters"}
                       </button>
                     )}
                   </div>
-                  {showSyllabus && grade === 11 && SYLLABUS_11[subjectId] && (
+                  {showSyllabus && syllabusFor(grade, subjectId) && (
                     <div style={styles.syllabusBox}>
-                      {Array.isArray(SYLLABUS_11[subjectId])
-                        ? SYLLABUS_11[subjectId].map((c, i) => <div key={i} style={styles.syllabusLine}>{c}</div>)
-                        : Object.entries(SYLLABUS_11[subjectId]).map(([section, items]) => (
+                      {Array.isArray(syllabusFor(grade, subjectId))
+                        ? syllabusFor(grade, subjectId).map((c, i) => <div key={i} style={styles.syllabusLine}>{c}</div>)
+                        : Object.entries(syllabusFor(grade, subjectId)).map(([section, items]) => (
                             <div key={section} style={{ marginBottom: 6 }}>
                               <div style={styles.syllabusSection}>{section}</div>
                               <div style={styles.syllabusLine}>{items.join(" · ")}</div>
@@ -1033,6 +1182,8 @@ export default function BoardCompanion() {
               subjects={SUBJECTS}
               mastery={subjectMastery}
               attempts={attempts}
+              weakTopics={focusAreas}
+              onPractice={practiceTopic}
             />
           )}
         </main>
@@ -1487,6 +1638,24 @@ const styles = {
   },
   stampPct: { fontSize: 18, fontWeight: 700, lineHeight: 1 },
   stampLabel: { fontSize: 8, textTransform: "uppercase", letterSpacing: 1, fontFamily: "Arial, sans-serif" },
+  focusCard: {
+    background: "#F5FAF3", border: "1px solid #C9DDC3", borderRadius: 18,
+    padding: "16px 18px", marginBottom: 22,
+  },
+  focusTitle: { fontSize: 14, fontWeight: 700, color: "#1B3B2F", fontFamily: "Arial, sans-serif" },
+  focusSub: { fontSize: 11.5, color: "#93A683", fontFamily: "Arial, sans-serif", marginBottom: 12 },
+  focusRow: {
+    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+    padding: "9px 0", borderTop: "1px solid #DCEED7",
+  },
+  focusInfo: { display: "flex", flexDirection: "column", gap: 2 },
+  focusTopic: { fontSize: 12.5, fontWeight: 600, color: "#2F3D30", fontFamily: "Arial, sans-serif" },
+  focusMeta: { fontSize: 11, color: "#93A683", fontFamily: "Arial, sans-serif" },
+  focusBtn: {
+    background: "#0F6B4F", color: "#fff", border: "none", borderRadius: 999,
+    padding: "7px 14px", fontSize: 11.5, fontFamily: "Arial, sans-serif", fontWeight: 600,
+    cursor: "pointer", flexShrink: 0,
+  },
   reportGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 },
   pieWrap: { display: "flex", alignItems: "center", justifyContent: "center" },
   subjectTable: { display: "flex", flexDirection: "column", gap: 12, justifyContent: "center" },
