@@ -44,7 +44,7 @@ export default function TeacherDashboard({ styles, teacherId, teacherName, onSig
 
   return (
     <div style={styles.homePage}>
-      <div style={styles.headerTop}>
+      <div style={styles.headerTop} className="no-print">
         <div style={styles.headerLeft}>
           <div style={styles.crest} />
           <div style={styles.headerWordmark}>Board Companion</div>
@@ -71,13 +71,13 @@ export default function TeacherDashboard({ styles, teacherId, teacherName, onSig
         </div>
       </div>
 
-      <div style={styles.hero}>
+      <div style={styles.hero} className="no-print">
         <div style={styles.heroText}>Teacher Dashboard</div>
         <div style={styles.heroSub}>Grade {grade} roster · progress only, chats stay private to each student.</div>
       </div>
 
       {classInfo && (
-        <div style={styles.importBanner}>
+        <div style={styles.importBanner} className="no-print">
           <span>
             Your class code: <strong style={{ letterSpacing: 2 }}>{classInfo.join_code}</strong> — share it with students so they can join when they sign up.
           </span>
@@ -101,6 +101,7 @@ export default function TeacherDashboard({ styles, teacherId, teacherName, onSig
               return (
                 <div key={student.id} style={{ borderBottom: "1px solid #C9DDC3" }}>
                   <button
+                    className="no-print"
                     onClick={() => setExpandedId(isOpen ? null : student.id)}
                     style={{
                       display: "flex", alignItems: "center", justifyContent: "space-between",

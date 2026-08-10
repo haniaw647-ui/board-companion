@@ -1,6 +1,6 @@
 import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import { Rocket, Flame, Trophy, Award, Star, Target, ListChecks } from "lucide-react";
+import { Rocket, Flame, Trophy, Award, Star, Target, ListChecks, Printer } from "lucide-react";
 import { PIE_COLORS } from "../lib/progress";
 
 // One icon per achievement id from computeAchievements() in lib/progress.js
@@ -25,18 +25,28 @@ const ACHIEVEMENT_ICONS = {
 export default function ProgressReport({ styles, grade, studentName, pieData, overallPct, subjects, mastery, attempts, weakTopics, onPractice, achievements }) {
   return (
     <div style={{ padding: "4px 4px 24px" }}>
-      <div style={styles.dmc}>
+      <div style={styles.dmc} className="print-report">
         <div style={styles.dmcHeader}>
           <div>
             <div style={styles.dmcTitle}>Progress Report</div>
             <div style={styles.dmcSub}>{studentName || "Student"} · Grade {grade}</div>
           </div>
-          {overallPct !== null && (
-            <div className="stamp" style={styles.stampCircle}>
-              <div style={styles.stampPct}>{overallPct}%</div>
-              <div style={styles.stampLabel}>overall</div>
-            </div>
-          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button
+              className="no-print"
+              style={styles.printBtn}
+              onClick={() => window.print()}
+              title="Print or save this report as a PDF"
+            >
+              <Printer size={14} /> Print / Save PDF
+            </button>
+            {overallPct !== null && (
+              <div className="stamp" style={styles.stampCircle}>
+                <div style={styles.stampPct}>{overallPct}%</div>
+                <div style={styles.stampLabel}>overall</div>
+              </div>
+            )}
+          </div>
         </div>
 
         {onPractice && weakTopics && weakTopics.length > 0 && (

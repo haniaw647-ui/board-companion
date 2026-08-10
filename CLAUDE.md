@@ -39,6 +39,25 @@ Features already built:
   doesn't build a streak — that's a deliberate scope limit to avoid a
   schema change, not an oversight, but worth knowing if it's ever
   extended to count broader activity.
+- **Achievements**: a badge strip on the Progress Report (7 milestones —
+  first quiz, 3/7-day streaks, mastering 1 or 3 subjects, a perfect quiz
+  score, 10 quizzes total). Also purely derived, no persisted "earned"
+  state — see `computeAchievements()` in `src/lib/progress.js`. Shown in
+  both the student's own Progress Report and the teacher's per-student
+  view (read-only, no privacy concern — same mastery data already there).
+- **Focus timer**: a Pomodoro-style widget (Focus 25m / Short break 5m /
+  Long break 15m, start/pause/reset) toggled from a chip in the study
+  tab's quick-actions row. Purely client-side UI state (`StudyTimer` in
+  `src/App.jsx`) — resets on page reload, nothing persisted.
+- **Configurable quiz length**: a 5/10/15/20-question dropdown next to the
+  topic input when generating a quiz (`quizLength` state in `src/App.jsx`,
+  threaded through `quizSystemPrompt()`), instead of the old hardcoded 5.
+- **Printable Progress Report**: a "Print / Save PDF" button on the
+  Progress Report calls `window.print()`; a global `@media print` rule
+  (in the `<style>` block in `src/App.jsx`) hides everything with a
+  `no-print` class (header, sidebar, the button itself, and — in the
+  teacher dashboard — the roster picker row) so only the report card
+  prints. No PDF library involved, just the browser's own print-to-PDF.
 - Delete menu with granular options (chat / current activity / progress
   history), not a single blanket "clear everything"
 - **Real accounts** via Supabase Auth (email/password) + Postgres, replacing

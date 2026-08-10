@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Send, Sparkles, ClipboardList, Layers, ListChecks, RotateCcw,
-  GraduationCap, ChevronDown, Loader2, Trash2, GitBranch, RefreshCw, X, Flame,
+  GraduationCap, ChevronDown, Loader2, Trash2, GitBranch, RefreshCw, X, Flame, Timer, Printer,
 } from "lucide-react";
 import { supabase } from "./lib/supabaseClient";
 import * as db from "./lib/db";
@@ -340,9 +340,9 @@ function subjectSystemPrompt(subject, grade) {
     syllabusInstruction(subject, grade);
 }
 
-function quizSystemPrompt(subject, grade, topic) {
+function quizSystemPrompt(subject, grade, topic, count = 5) {
   return `You are a Punjab Board exam question setter for Grade ${grade} ${subject.label}. ` +
-    `The student has asked for a quiz on: "${topic}". Generate exactly 5 board-style MCQs that stay STRICTLY within this exact topic/chapter — do not switch to a different chapter or a "similar" topic, and do not mix in content from other chapters. ` +
+    `The student has asked for a quiz on: "${topic}". Generate exactly ${count} board-style MCQs that stay STRICTLY within this exact topic/chapter — do not switch to a different chapter or a "similar" topic, and do not mix in content from other chapters. ` +
     `If "${topic}" refers to a chapter number (e.g. "chapter 1", "1st chapter", "topic 1"), resolve it using the official chapter list below, not your own guess.` +
     languageInstruction(subject) +
     syllabusInstruction(subject, grade) +
@@ -569,6 +569,8 @@ export default function BoardCompanion() {
   const [initLoaded, setInitLoaded] = useState(false);
   const [pendingAction, setPendingAction] = useState(null); // 'notes' | 'flashcards' | 'mindmap' | null
   const [topicDraft, setTopicDraft] = useState("");
+  const [quizLength, setQuizLength] = useState(5);
+  const [showTimer, setShowTimer] = useState(false);
   const [notesData, setNotesData] = useState(null); // {title, sections:[{heading,points}]}
   const [flashcardsData, setFlashcardsData] = useState(null); // {topic, cards:[{front,back}]}
   const [mindmapData, setMindmapData] = useState(null); // {topic, branches:[{label,children}]}
@@ -684,11 +686,11 @@ export default function BoardCompanion() {
     }
   }
 
-  async function startQuiz(topic) {
+  async function startQuiz(topic, count = quizLength) {
     setLoading(true);
     clearActivities();
     try {
-      const raw = await askClaude(quizSystemPrompt(subject, grade, topic), "Generate the quiz now.");
+      const raw = await askClaude(quizSystemPrompt(subject, grade, topic, count), "Generate the quiz now.");
       const cleaned = raw.replace(/```json|```/g, "").trim();
       const parsed = JSON.parse(cleaned);
       setQuiz(parsed);
@@ -845,6 +847,11 @@ export default function BoardCompanion() {
         .hoverable-card, .hoverable-chip { transition: border-color 0.15s, outline-color 0.15s; }
         .hoverable-card:hover, .hoverable-card:active { border-color: #B6CC8E; outline: 2px solid #B6CC8E; outline-offset: 2px; }
         .hoverable-chip:hover, .hoverable-chip:active { outline: 2px solid #B6CC8E; outline-offset: 2px; }
+        @media print {
+          .no-print { display: none !important; }
+          body, .print-report { background: #fff !important; }
+          .print-report { border: none !important; box-shadow: none !important; }
+        }
       `}</style>
 
       {authLoading ? (
@@ -880,7 +887,7 @@ export default function BoardCompanion() {
       ) : (
       <>
       {/* Header / cover strip */}
-      <header style={styles.header}>
+      <header style={styles.header} className="no-print">
         <div style={styles.headerTop}>
           <div style={styles.headerLeft}>
             <button style={styles.crestBtn} onClick={() => setScreen("home")} aria-label="Go home">
@@ -967,7 +974,7 @@ export default function BoardCompanion() {
 
       <div style={styles.body}>
         {/* Subject register (sidebar) */}
-        <aside style={styles.sidebar}>
+        <aside style={styles.sidebar} className="no-print">
           <div style={styles.sidebarLabel}>Subjects</div>
           {gradeSubjects.map((s) => {
             const Icon = s.icon;
@@ -1039,6 +1046,9 @@ export default function BoardCompanion() {
                     </button>
                   );
                 })}
+                <button onClick={() => setShowTimer((v) => !v)} style={showTimer ? styles.chipActive : styles.chip}>
+                  <Timer size={14} /> Focus timer
+                </button>
                 {(messages.length > 0 || quiz || notesData || flashcardsData || mindmapData || ((attempts[grade] && attempts[grade][subjectId] || []).length > 0)) && (
                   <div style={styles.deleteWrap}>
                     <button onClick={() => setShowDeleteMenu((v) => !v)} style={styles.chipGhost}>
@@ -1096,6 +1106,8 @@ export default function BoardCompanion() {
                 )}
               </div>
 
+              {showTimer && <StudyTimer onClose={() => setShowTimer(false)} />}
+
               {pendingAction && (
                 <div className="fade-in" style={styles.topicBar}>
                   <span style={styles.topicBarLabel}>
@@ -1109,6 +1121,18 @@ export default function BoardCompanion() {
                     placeholder={`e.g. ${TOPIC_EXAMPLE[subjectId] || "Chemical Bonding"}`}
                     style={styles.topicInput}
                   />
+                  {pendingAction === "quiz" && (
+                    <select
+                      value={quizLength}
+                      onChange={(e) => setQuizLength(Number(e.target.value))}
+                      style={styles.quizLengthSelect}
+                      title="Number of questions"
+                    >
+                      {[5, 10, 15, 20].map((n) => (
+                        <option key={n} value={n}>{n} questions</option>
+                      ))}
+                    </select>
+                  )}
                   <button onClick={submitTopicDraft} style={styles.topicGoBtn} disabled={!topicDraft.trim()}>
                     Generate
                   </button>
@@ -1242,6 +1266,80 @@ function NotesCard({ data }) {
           </ul>
         </div>
       ))}
+    </div>
+  );
+}
+
+/* ---------- Study focus timer (Pomodoro-style, purely client-side) ---------- */
+
+const TIMER_MODES = {
+  focus: { label: "Focus", minutes: 25 },
+  short: { label: "Short break", minutes: 5 },
+  long: { label: "Long break", minutes: 15 },
+};
+
+function StudyTimer({ onClose }) {
+  const [mode, setMode] = useState("focus");
+  const [secondsLeft, setSecondsLeft] = useState(TIMER_MODES.focus.minutes * 60);
+  const [running, setRunning] = useState(false);
+
+  useEffect(() => {
+    if (!running) return;
+    const id = setInterval(() => {
+      setSecondsLeft((s) => {
+        if (s <= 1) {
+          setRunning(false);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [running]);
+
+  function switchMode(next) {
+    setMode(next);
+    setRunning(false);
+    setSecondsLeft(TIMER_MODES[next].minutes * 60);
+  }
+
+  function reset() {
+    setRunning(false);
+    setSecondsLeft(TIMER_MODES[mode].minutes * 60);
+  }
+
+  const mm = String(Math.floor(secondsLeft / 60)).padStart(2, "0");
+  const ss = String(secondsLeft % 60).padStart(2, "0");
+  const done = secondsLeft === 0;
+
+  return (
+    <div className="fade-in" style={styles.timerCard}>
+      <div style={styles.timerModeRow}>
+        {Object.entries(TIMER_MODES).map(([key, m]) => (
+          <button
+            key={key}
+            onClick={() => switchMode(key)}
+            style={{ ...styles.timerModeBtn, ...(mode === key ? styles.timerModeBtnActive : {}) }}
+          >
+            {m.label}
+          </button>
+        ))}
+        <button onClick={onClose} style={{ ...styles.topicCancelBtn, marginLeft: "auto" }} title="Hide timer">
+          <X size={14} />
+        </button>
+      </div>
+      <div style={{ ...styles.timerDisplay, color: done ? "#C1594A" : "#1B3B2F" }}>
+        {done ? "Time's up!" : `${mm}:${ss}`}
+      </div>
+      <div style={styles.timerControls}>
+        <button
+          onClick={() => (done ? reset() : setRunning((r) => !r))}
+          style={styles.topicGoBtn}
+        >
+          {done ? "Start again" : running ? "Pause" : secondsLeft === TIMER_MODES[mode].minutes * 60 ? "Start" : "Resume"}
+        </button>
+        <button onClick={reset} style={styles.deleteMenuCancel}>Reset</button>
+      </div>
     </div>
   );
 }
@@ -1537,6 +1635,25 @@ const styles = {
     borderRadius: 999, padding: "7px 14px", fontSize: 12.5, cursor: "pointer",
     fontFamily: "Arial, sans-serif", color: "#7C8870",
   },
+  chipActive: {
+    display: "flex", alignItems: "center", gap: 6, background: "#0F6B4F", border: "1px solid #0F6B4F",
+    borderRadius: 999, padding: "7px 14px", fontSize: 12.5, cursor: "pointer",
+    fontFamily: "Arial, sans-serif", color: "#FBFDFA",
+  },
+  timerCard: {
+    background: "#F5FAF3", border: "1px solid #C9DDC3", borderRadius: 18,
+    padding: "16px 18px", marginBottom: 16, display: "flex", flexDirection: "column",
+    alignItems: "center", gap: 10,
+  },
+  timerModeRow: { display: "flex", alignItems: "center", gap: 6, alignSelf: "stretch" },
+  timerModeBtn: {
+    background: "#fff", border: "1px solid #C9DDC3", borderRadius: 999,
+    padding: "5px 12px", fontSize: 11.5, cursor: "pointer", fontFamily: "Arial, sans-serif",
+    color: "#4A5A2E",
+  },
+  timerModeBtnActive: { background: "#D9F0E4", borderColor: "#B6CC8E", color: "#0F6B4F", fontWeight: 700 },
+  timerDisplay: { fontSize: 44, fontWeight: 700, fontFamily: "'Georgia', serif", letterSpacing: 1 },
+  timerControls: { display: "flex", gap: 8 },
   chipDanger: {
     display: "flex", alignItems: "center", gap: 6, background: "#F5DED4", border: "1px solid #C1594A",
     borderRadius: 999, padding: "7px 14px", fontSize: 12.5, cursor: "pointer",
@@ -1619,6 +1736,11 @@ const styles = {
     background: "#0F6B4F", color: "#FBFDFA", border: "none", borderRadius: 999,
     padding: "8px 16px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "Arial, sans-serif",
   },
+  quizLengthSelect: {
+    border: "1px solid #C9DDC3", borderRadius: 999, padding: "7px 10px",
+    fontSize: 12, fontFamily: "Arial, sans-serif", background: "#fff", color: "#2F3D30",
+    flexShrink: 0, cursor: "pointer",
+  },
   topicCancelBtn: {
     background: "transparent", border: "none", color: "#4A5A2E", cursor: "pointer",
     display: "flex", alignItems: "center", justifyContent: "center", padding: 6,
@@ -1675,6 +1797,11 @@ const styles = {
     width: 76, height: 76, borderRadius: "50%", border: "3px solid #0F6B4F", color: "#1B3B2F",
     display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
     transform: "rotate(-6deg)", background: "#F5FAF3",
+  },
+  printBtn: {
+    display: "flex", alignItems: "center", gap: 6, background: "#fff", border: "1px solid #C9DDC3",
+    borderRadius: 999, padding: "8px 14px", fontSize: 12, cursor: "pointer",
+    fontFamily: "Arial, sans-serif", color: "#1B3B2F", flexShrink: 0,
   },
   stampPct: { fontSize: 18, fontWeight: 700, lineHeight: 1 },
   stampLabel: { fontSize: 8, textTransform: "uppercase", letterSpacing: 1, fontFamily: "Arial, sans-serif" },
