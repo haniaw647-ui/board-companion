@@ -99,7 +99,7 @@ export default function ProgressReport({ styles, grade, studentName, pieData, ov
                     style={{ ...styles.badge, ...(a.earned ? { background: ACHIEVEMENT_COLORS[a.id].background } : styles.badgeLocked) }}
                     title={a.description}
                   >
-                    <Icon size={30} color={a.earned ? "#fff" : "#B6C4AE"} strokeWidth={2} />
+                    <Icon size={20} color={a.earned ? "#fff" : "#B6C4AE"} strokeWidth={2} />
                     <span style={a.earned ? styles.badgeLabelEarned : styles.badgeLabelLocked}>{a.label}</span>
                   </div>
                 );
