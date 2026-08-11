@@ -455,10 +455,16 @@ function HomePage({ session, studentName, onEnter }) {
   const scrollTo = (ref) => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   const [bgSize, setBgSize] = useState("cover");
-  // width of the empty side margin beside the centered content column, used
-  // to size/hide the chemistry-doodle strips below — 0 means "no room,
-  // don't render them" (the mobile case: content already fills the width).
+  // Width of the empty side margin beside the centered content column, and
+  // how visible the doodle is within it. On desktop (generous margin) the
+  // doodle spreads to fill most of that space at a soft opacity; on mobile
+  // (content already fills the width, ~0 real margin) it shrinks to a thin,
+  // fainter sliver hugging the very edge rather than disappearing — content
+  // itself is always opaque on top, so the sliver only ever shows through
+  // the actual empty gaps (page padding, between-section spacing), never
+  // over cards/text/buttons.
   const [doodleWidth, setDoodleWidth] = useState(0);
+  const [doodleOpacity, setDoodleOpacity] = useState(0.5);
   useEffect(() => {
     const el = topRef.current;
     if (!el) return;
@@ -471,11 +477,16 @@ function HomePage({ session, studentName, onEnter }) {
       // side ropes entirely — switch to contain rather than let that happen
       setBgSize(containerAspect > HERO_BG_ASPECT * 1.35 ? "contain" : "cover");
 
-      // widest content column is ~820px (featureRow); anything left over on
-      // either side is "empty" and safe for the doodle. Below ~40px of
-      // margin there's no meaningful room, so the strip is hidden entirely.
+      // widest content column is ~820px (featureRow) — never narrowed by
+      // the doodle, it only ever occupies space already outside that column.
       const margin = (width - 860) / 2;
-      setDoodleWidth(Math.max(0, Math.min(240, margin - 40)));
+      if (margin > 60) {
+        setDoodleWidth(Math.min(460, margin - 24));
+        setDoodleOpacity(0.5);
+      } else {
+        setDoodleWidth(30);
+        setDoodleOpacity(0.28);
+      }
     };
     recompute();
     const ro = new ResizeObserver(recompute);
@@ -491,8 +502,8 @@ function HomePage({ session, studentName, onEnter }) {
     <div style={{ ...styles.homePage, backgroundSize: bgSize }} ref={topRef}>
       {doodleWidth > 0 && (
         <>
-          <div style={{ ...styles.doodleStrip, left: 0, width: doodleWidth, backgroundSize: `${doodleWidth}px auto` }} />
-          <div style={{ ...styles.doodleStrip, right: 0, width: doodleWidth, backgroundSize: `${doodleWidth}px auto` }} />
+          <div style={{ ...styles.doodleStrip, left: 0, width: doodleWidth, opacity: doodleOpacity, backgroundSize: `${Math.min(doodleWidth, 230)}px auto` }} />
+          <div style={{ ...styles.doodleStrip, right: 0, width: doodleWidth, opacity: doodleOpacity, backgroundSize: `${Math.min(doodleWidth, 230)}px auto` }} />
         </>
       )}
 
@@ -2067,7 +2078,7 @@ const styles = {
   // of real content without an explicit z-index on each content element.
   doodleStrip: {
     position: "absolute", top: 0, bottom: 0, backgroundImage: "url(/medical-doodle.png)",
-    backgroundRepeat: "repeat-y", backgroundPosition: "top center",
+    backgroundRepeat: "repeat", backgroundPosition: "top left",
     pointerEvents: "none", zIndex: -1,
   },
   homeNav: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, minWidth: 0 },
