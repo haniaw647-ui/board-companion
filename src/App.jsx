@@ -505,30 +505,41 @@ function RopeBorder() {
       aria-hidden="true"
     >
       <defs>
-        <pattern id="ropeTwistA" patternUnits="userSpaceOnUse" width="34" height="34" patternTransform="rotate(52)">
-          <rect width="34" height="34" fill="#C9D3B0" />
-          <rect width="17" height="34" fill="#93A683" />
+        {/* herringbone/chevron weave — reads as twisted fiber strands rather
+            than flat diagonal stripes, closer to a real rope's surface */}
+        <pattern id="ropeTwistA" patternUnits="userSpaceOnUse" width="26" height="26" patternTransform="rotate(50)">
+          <rect width="26" height="26" fill="#C7CBA8" />
+          <path d="M0 13 L13 0 L26 13 L13 26 Z" fill="#9CA378" />
+          <path d="M0 13 L13 0 L13 26 Z" fill="#828C5E" opacity="0.55" />
+          <path d="M0 0 L4 4 M22 22 L26 26" stroke="#5F6A44" strokeWidth="1.5" opacity="0.4" />
         </pattern>
-        <pattern id="ropeTwistB" patternUnits="userSpaceOnUse" width="26" height="26" patternTransform="rotate(-38)">
-          <rect width="26" height="26" fill="#DCEED7" />
-          <rect width="13" height="26" fill="#B6CC8E" />
+        <pattern id="ropeTwistB" patternUnits="userSpaceOnUse" width="20" height="20" patternTransform="rotate(-40)">
+          <rect width="20" height="20" fill="#DDE1C6" />
+          <path d="M0 10 L10 0 L20 10 L10 20 Z" fill="#B3BA8E" />
+          <path d="M0 10 L10 0 L10 20 Z" fill="#98A171" opacity="0.5" />
         </pattern>
       </defs>
 
       {/* soft shadow strand, offset slightly for depth */}
       <path
-        d="M 1010,-30 C 1080,300 890,540 970,760 C 1050,990 720,1140 460,1190 C 230,1230 40,1140 -30,1240"
-        fill="none" stroke="#4A5A2E" strokeWidth={78} strokeLinecap="round" opacity={0.18}
+        d="M 1020,-30 C 1090,300 880,540 980,770 C 1070,1010 700,1150 440,1195 C 210,1235 30,1140 -40,1245"
+        fill="none" stroke="#4A5A2E" strokeWidth={92} strokeLinecap="round" opacity={0.2}
       />
       {/* main heavy twisted strand: top-right down to bottom-left */}
       <path
-        d="M 1000,-40 C 1070,290 880,530 960,750 C 1040,980 710,1130 450,1180 C 220,1220 30,1130 -40,1230"
-        fill="none" stroke="url(#ropeTwistA)" strokeWidth={68} strokeLinecap="round"
+        d="M 1010,-40 C 1080,290 870,530 970,760 C 1060,1000 690,1140 430,1185 C 200,1225 20,1130 -50,1235"
+        fill="none" stroke="url(#ropeTwistA)" strokeWidth={80} strokeLinecap="round"
       />
-      {/* secondary lighter strand: top-left sweeping to mid-right */}
+      {/* thin pale highlight tracing one edge of the main strand, for a glossy-fiber look */}
       <path
-        d="M 10,-40 C -60,260 160,470 60,680 C -40,890 260,1000 520,1080 C 700,1135 850,1110 1010,1190"
-        fill="none" stroke="url(#ropeTwistB)" strokeWidth={42} strokeLinecap="round" opacity={0.9}
+        d="M 1010,-40 C 1080,290 870,530 970,760 C 1060,1000 690,1140 430,1185 C 200,1225 20,1130 -50,1235"
+        fill="none" stroke="#EEF1E0" strokeWidth={10} strokeLinecap="round" opacity={0.35}
+        transform="translate(-14,-10)"
+      />
+      {/* secondary lighter strand: top-left sweeping down the left side */}
+      <path
+        d="M 0,-40 C -70,260 170,470 60,690 C -50,900 270,1010 520,1090 C 700,1145 850,1115 1010,1195"
+        fill="none" stroke="url(#ropeTwistB)" strokeWidth={50} strokeLinecap="round" opacity={0.92}
       />
     </svg>
   );
