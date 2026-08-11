@@ -296,6 +296,16 @@ delete-warning), not brand color, and making them green would remove a
 signal the UI needs. If a future request says "make everything green," ask
 before touching these rather than silently converting them.
 
+The Achievements badges on the Progress Report are a second deliberate
+exception, added per the student's own reference image: each earned badge
+is a bold flat saturated color (orange/gold/red/green/teal/purple/blue —
+`ACHIEVEMENT_COLORS` in `ProgressReport.jsx`), not a green tint, styled as
+a big square icon card rather than a small pill. Locked badges still use
+the single muted gray (`styles.badgeLocked`) so earned-vs-not stays the
+first thing that reads. If asked to bring these back in line with the rest
+of the palette, that's a real request to fulfill, not a bug to "fix"
+unprompted.
+
 **History**: this app has gone through four palettes — boho terracotta
 (original) → briefly green, explicitly reverted → sage-green/gold matching
 a "Maria Luné" portfolio reference → the current all-green ramp above,

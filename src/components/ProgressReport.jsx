@@ -15,6 +15,23 @@ const ACHIEVEMENT_ICONS = {
   "quiz-regular": ListChecks,
 };
 
+// One vivid, saturated color per EARNED badge — a deliberate one-off
+// departure from the app's all-green palette (see "Design theme" in
+// CLAUDE.md) for just this one game-badge-style component, per an explicit
+// reference image the student provided (bold flat-color cards, not muted
+// green tints). Locked badges stay on the single muted gray
+// (styles.badgeLocked) so earned vs. not is still the first thing that
+// reads at a glance.
+const ACHIEVEMENT_COLORS = {
+  "first-quiz": { background: "#F2764B" }, // warm orange
+  "streak-3": { background: "#F2B705" }, // gold
+  "streak-7": { background: "#E85D4B" }, // flame red
+  "subject-master": { background: "#4CAF6D" }, // green
+  "well-rounded": { background: "#2FA8A0" }, // teal
+  "perfect-score": { background: "#9B6BD9" }, // purple
+  "quiz-regular": { background: "#4A90D9" }, // blue
+};
+
 // Pure presentational — reused for both the logged-in student's own
 // "Progress report" tab and, per-student, inside the teacher dashboard.
 // `weakTopics` + `onPractice` are optional: the teacher dashboard omits
@@ -79,11 +96,11 @@ export default function ProgressReport({ styles, grade, studentName, pieData, ov
                 return (
                   <div
                     key={a.id}
-                    style={{ ...styles.badge, ...(a.earned ? styles.badgeEarned : styles.badgeLocked) }}
+                    style={{ ...styles.badge, ...(a.earned ? { background: ACHIEVEMENT_COLORS[a.id].background } : styles.badgeLocked) }}
                     title={a.description}
                   >
-                    <Icon size={18} />
-                    <span>{a.label}</span>
+                    <Icon size={30} color={a.earned ? "#fff" : "#B6C4AE"} strokeWidth={2} />
+                    <span style={a.earned ? styles.badgeLabelEarned : styles.badgeLabelLocked}>{a.label}</span>
                   </div>
                 );
               })}

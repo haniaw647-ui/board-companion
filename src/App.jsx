@@ -1863,14 +1863,24 @@ const styles = {
     background: "#F5FAF3", border: "1px solid #C9DDC3", borderRadius: 18,
     padding: "16px 18px", marginBottom: 22,
   },
-  achievementsGrid: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 },
-  badge: {
-    display: "flex", alignItems: "center", gap: 6, borderRadius: 999,
-    padding: "8px 14px", fontSize: 12, fontWeight: 600, fontFamily: "Arial, sans-serif",
-    border: "1px solid transparent", cursor: "default",
+  achievementsGrid: {
+    display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))",
+    gap: 12, marginTop: 10,
   },
-  badgeEarned: { background: "#D9F0E4", color: "#0F6B4F", borderColor: "#B6CC8E" },
-  badgeLocked: { background: "#F3FAF0", color: "#B6C4AE", borderColor: "#DCEED7" },
+  badge: {
+    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+    gap: 8, borderRadius: 18, aspectRatio: "1 / 1", padding: "10px 8px",
+    boxShadow: "0 4px 10px rgba(27,59,47,0.12)", cursor: "default",
+  },
+  badgeLocked: { background: "#E7EFE2", boxShadow: "none" },
+  badgeLabelEarned: {
+    fontSize: 11.5, fontWeight: 800, fontFamily: "Arial, sans-serif", color: "#fff",
+    textAlign: "center", textTransform: "uppercase", letterSpacing: 0.3, lineHeight: 1.2,
+  },
+  badgeLabelLocked: {
+    fontSize: 11.5, fontWeight: 800, fontFamily: "Arial, sans-serif", color: "#B6C4AE",
+    textAlign: "center", textTransform: "uppercase", letterSpacing: 0.3, lineHeight: 1.2,
+  },
   leaderboardCard: {
     background: "#F5FAF3", border: "1px solid #C9DDC3", borderRadius: 18,
     padding: "16px 18px", marginBottom: 22,
