@@ -11,6 +11,7 @@ import {
   overallPct as overallPctFor,
   weakTopics as weakTopicsFor,
   computeStreak,
+  weekActivity,
   computeAchievements,
   rankClassmates,
   PIE_COLORS,
@@ -573,6 +574,7 @@ export default function BoardCompanion() {
   const [topicDraft, setTopicDraft] = useState("");
   const [quizLength, setQuizLength] = useState(5);
   const [showTimer, setShowTimer] = useState(false);
+  const [streakCelebration, setStreakCelebration] = useState(null); // {current, longest} | null
   const [notesData, setNotesData] = useState(null); // {title, sections:[{heading,points}]}
   const [flashcardsData, setFlashcardsData] = useState(null); // {topic, cards:[{front,back}]}
   const [mindmapData, setMindmapData] = useState(null); // {topic, branches:[{label,children}]}
@@ -732,9 +734,17 @@ export default function BoardCompanion() {
     const total = quiz.questions.length;
     setQuizResult({ score, total });
 
+    const wasActiveToday = streak.activeToday;
     await db.insertAttempt(session.user.id, grade, subjectId, { score, total, topic: quiz.topic });
     const updated = await db.getAttempts(session.user.id);
     setAttempts(updated);
+
+    // celebrate once per day — the moment this quiz is what extends today's
+    // streak, not every quiz after that in the same sitting
+    const newStreak = computeStreak(updated);
+    if (!wasActiveToday && newStreak.activeToday) {
+      setStreakCelebration(newStreak);
+    }
   }
 
   function clearActivities() {
@@ -933,7 +943,7 @@ export default function BoardCompanion() {
                     : `${streak.current}-day streak — take a quiz today to keep it going (longest: ${streak.longest})`
                 }
               >
-                <Flame size={14} color={streak.activeToday ? "#0F6B4F" : "#93A683"} />
+                <Flame size={14} color={streak.activeToday ? "#F2A93B" : "#93A683"} fill={streak.activeToday ? "#F2A93B" : "none"} />
                 {streak.current}
               </div>
             )}
@@ -956,6 +966,14 @@ export default function BoardCompanion() {
 
         <BohoShapeStrip />
       </header>
+
+      {streakCelebration && (
+        <StreakCelebration
+          streak={streakCelebration}
+          week={weekActivity(attempts)}
+          onClose={() => setStreakCelebration(null)}
+        />
+      )}
 
       {showImportPrompt && (
         <div style={styles.importBanner}>
@@ -1289,6 +1307,43 @@ function NotesCard({ data }) {
   );
 }
 
+/* ---------- Streak celebration screen ----------
+   Shown once per day, the moment a quiz completion first extends today's
+   streak (see the wasActiveToday check around insertAttempt() in
+   submitQuiz()) — not on every quiz, or a student doing five quizzes in one
+   sitting would see it five times. Bold orange/gold flame on a dark
+   backdrop is a deliberate, scoped exception to the app's all-green
+   palette (same category as the achievement badges — see CLAUDE.md),
+   matching the reference image the student provided; everywhere else in
+   the app keeps the green theme untouched. */
+function StreakCelebration({ streak, week, onClose }) {
+  return (
+    <div style={styles.streakOverlay} onClick={onClose}>
+      <div style={styles.streakCard} onClick={(e) => e.stopPropagation()}>
+        <div style={styles.streakGlowWrap}>
+          <div style={styles.streakGlow} />
+          <Flame size={72} color="#FFC94A" fill="#FFC94A" style={{ position: "relative" }} />
+        </div>
+        <div style={styles.streakBigNumber}>{streak.current}</div>
+        <div style={styles.streakBigLabel}>day streak!</div>
+
+        <div style={styles.streakWeekRow}>
+          {week.map((d, i) => (
+            <div key={i} style={styles.streakWeekDay}>
+              <div style={{ ...styles.streakWeekLetter, ...(d.isToday ? styles.streakWeekLetterToday : {}) }}>
+                {d.letter}
+              </div>
+              <div style={{ ...styles.streakWeekDot, ...(d.active ? styles.streakWeekDotActive : {}) }} />
+            </div>
+          ))}
+        </div>
+
+        <button style={styles.streakCloseBtn} onClick={onClose}>Nice!</button>
+      </div>
+    </div>
+  );
+}
+
 /* ---------- Study focus timer (Pomodoro-style, purely client-side) ---------- */
 
 const TIMER_MODE_LABELS = { focus: "Focus", short: "Short break", long: "Long break" };
@@ -1606,6 +1661,42 @@ const styles = {
     display: "flex", alignItems: "center", gap: 4, background: "#F5FAF3", border: "1px solid #C9DDC3",
     borderRadius: 999, padding: "6px 12px", fontSize: 12.5, fontWeight: 700, color: "#1B3B2F",
     fontFamily: "Arial, sans-serif", cursor: "default",
+  },
+  streakOverlay: {
+    position: "fixed", inset: 0, background: "rgba(10,10,18,0.88)", zIndex: 200,
+    display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+  },
+  streakCard: {
+    display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+    maxWidth: 340, width: "100%", textAlign: "center",
+  },
+  streakGlowWrap: {
+    position: "relative", display: "flex", alignItems: "center", justifyContent: "center",
+    width: 140, height: 140, marginBottom: 6,
+  },
+  streakGlow: {
+    position: "absolute", inset: 0, borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(255,201,74,0.55) 0%, rgba(255,201,74,0) 70%)",
+  },
+  streakBigNumber: {
+    fontSize: 72, fontWeight: 800, color: "#FFC94A", fontFamily: "Arial, sans-serif", lineHeight: 1,
+  },
+  streakBigLabel: {
+    fontSize: 18, fontWeight: 700, color: "#FFC94A", fontFamily: "Arial, sans-serif", marginBottom: 20,
+  },
+  streakWeekRow: {
+    display: "flex", gap: 10, background: "rgba(255,255,255,0.06)", borderRadius: 16,
+    padding: "16px 18px", marginBottom: 26,
+  },
+  streakWeekDay: { display: "flex", flexDirection: "column", alignItems: "center", gap: 8 },
+  streakWeekLetter: { fontSize: 11, fontWeight: 700, color: "#8A8A9A", fontFamily: "Arial, sans-serif" },
+  streakWeekLetterToday: { color: "#FFC94A" },
+  streakWeekDot: { width: 20, height: 20, borderRadius: "50%", background: "rgba(255,255,255,0.12)" },
+  streakWeekDotActive: { background: "#FFC94A", boxShadow: "0 0 10px rgba(255,201,74,0.7)" },
+  streakCloseBtn: {
+    background: "#FFC94A", color: "#2A1E00", border: "none", borderRadius: 999,
+    padding: "14px 48px", fontSize: 15, fontWeight: 800, fontFamily: "Arial, sans-serif",
+    cursor: "pointer", textTransform: "uppercase", letterSpacing: 0.5,
   },
   studentBadge: {
     background: "#B6CC8E", color: "#2F3D30", padding: "6px 14px", borderRadius: 999,

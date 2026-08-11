@@ -109,6 +109,29 @@ export function computeStreak(attempts) {
   return { current, longest, activeToday: gapToToday === 0 };
 }
 
+// Sun-Sat activity for the current calendar week, for the streak
+// celebration screen's week strip. Reuses the same date set computeStreak()
+// builds rather than re-deriving it, just re-shaped per weekday.
+export function weekActivity(attempts) {
+  const dates = new Set();
+  Object.values(attempts).forEach((bySubject) => {
+    Object.values(bySubject).forEach((list) => {
+      list.forEach((a) => { if (a.date) dates.add(a.date); });
+    });
+  });
+
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0=Sun .. 6=Sat
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - dayOfWeek);
+
+  return ["S", "M", "T", "W", "T", "F", "S"].map((letter, i) => {
+    const d = new Date(startOfWeek);
+    d.setDate(startOfWeek.getDate() + i);
+    return { letter, active: dates.has(d.toISOString().slice(0, 10)), isToday: i === dayOfWeek };
+  });
+}
+
 // Class leaderboard ranking, reusing computeStreak per classmate rather than
 // duplicating streak math. Ranked by current streak first (matches the
 // header's own flame chip — "showing up" is the metric this app already

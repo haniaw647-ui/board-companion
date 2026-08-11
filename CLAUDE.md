@@ -39,6 +39,18 @@ Features already built:
   doesn't build a streak — that's a deliberate scope limit to avoid a
   schema change, not an oversight, but worth knowing if it's ever
   extended to count broader activity.
+- **Streak celebration screen**: a full-screen dark overlay (glowing gold
+  flame, big day count, Sun-Sat week strip) shown once per calendar day —
+  the moment a quiz submission is the one that first extends *today's*
+  streak, not on every quiz after that in the same sitting (see the
+  `wasActiveToday`/`newStreak.activeToday` check around `insertAttempt()`
+  in `submitQuiz()`, `src/App.jsx`). Week strip data comes from
+  `weekActivity()` in `lib/progress.js`. Built from a reference image the
+  student provided; like the achievement badges below, the gold/orange
+  flame + dark backdrop is a deliberate scoped exception to the app's
+  all-green palette for just this one moment, not a general change — the
+  header's small streak chip icon was also recolored to match (gold when
+  `activeToday`, muted sage otherwise).
 - **Achievements**: a badge strip on the Progress Report (7 milestones —
   first quiz, 3/7-day streaks, mastering 1 or 3 subjects, a perfect quiz
   score, 10 quizzes total). Also purely derived, no persisted "earned"
@@ -305,6 +317,11 @@ the single muted gray (`styles.badgeLocked`) so earned-vs-not stays the
 first thing that reads. If asked to bring these back in line with the rest
 of the palette, that's a real request to fulfill, not a bug to "fix"
 unprompted.
+
+The streak celebration screen (see "Features already built" above) is a
+third such exception, same reasoning: gold/orange flame on a dark
+backdrop, per the student's reference image, scoped to just that one
+full-screen moment plus the header's streak-chip icon color.
 
 **History**: this app has gone through four palettes — boho terracotta
 (original) → briefly green, explicitly reverted → sage-green/gold matching
