@@ -2059,14 +2059,14 @@ const styles = {
     width: "100%", boxSizing: "border-box", minHeight: "100vh", padding: "18px 28px 40px",
     display: "flex", flexDirection: "column", position: "relative", zIndex: 0,
   },
-  // Chemistry-doodle side strips — only rendered when there's real empty
+  // Medical-doodle side strips — only rendered when there's real empty
   // margin beside the centered content column (see doodleWidth in
   // HomePage), so on mobile (content fills the width) they simply don't
   // render rather than needing a separate mobile override. Negative
   // z-index + homePage's own zIndex:0 above keeps them behind every piece
   // of real content without an explicit z-index on each content element.
   doodleStrip: {
-    position: "absolute", top: 0, bottom: 0, backgroundImage: "url(/chem-doodle.png)",
+    position: "absolute", top: 0, bottom: 0, backgroundImage: "url(/medical-doodle.png)",
     backgroundRepeat: "repeat-y", backgroundPosition: "top center",
     pointerEvents: "none", zIndex: -1,
   },
