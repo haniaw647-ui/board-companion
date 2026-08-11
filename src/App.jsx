@@ -487,6 +487,53 @@ function BohoBottomFill() {
   );
 }
 
+/* ---------- Decorative rope frame (wraps around the landing page's arch
+   card) — two thick twisted-rope strands sweeping diagonally behind the
+   card, visible only in the margin where the card doesn't cover them.
+   The "twist" is faked with a rotated two-tone stripe pattern used as the
+   stroke paint on a thick rounded-cap path, rather than literal braiding
+   geometry. Uses preserveAspectRatio="none" so the strand ends reliably
+   land near the actual page corners regardless of the container's aspect
+   ratio (the card's own opaque background hides most of the distortion
+   this introduces). ---------- */
+function RopeBorder() {
+  return (
+    <svg
+      viewBox="0 0 1000 1200"
+      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }}
+      preserveAspectRatio="none"
+      aria-hidden="true"
+    >
+      <defs>
+        <pattern id="ropeTwistA" patternUnits="userSpaceOnUse" width="34" height="34" patternTransform="rotate(52)">
+          <rect width="34" height="34" fill="#C9D3B0" />
+          <rect width="17" height="34" fill="#93A683" />
+        </pattern>
+        <pattern id="ropeTwistB" patternUnits="userSpaceOnUse" width="26" height="26" patternTransform="rotate(-38)">
+          <rect width="26" height="26" fill="#DCEED7" />
+          <rect width="13" height="26" fill="#B6CC8E" />
+        </pattern>
+      </defs>
+
+      {/* soft shadow strand, offset slightly for depth */}
+      <path
+        d="M 1010,-30 C 1080,300 890,540 970,760 C 1050,990 720,1140 460,1190 C 230,1230 40,1140 -30,1240"
+        fill="none" stroke="#4A5A2E" strokeWidth={78} strokeLinecap="round" opacity={0.18}
+      />
+      {/* main heavy twisted strand: top-right down to bottom-left */}
+      <path
+        d="M 1000,-40 C 1070,290 880,530 960,750 C 1040,980 710,1130 450,1180 C 220,1220 30,1130 -40,1230"
+        fill="none" stroke="url(#ropeTwistA)" strokeWidth={68} strokeLinecap="round"
+      />
+      {/* secondary lighter strand: top-left sweeping to mid-right */}
+      <path
+        d="M 10,-40 C -60,260 160,470 60,680 C -40,890 260,1000 520,1080 C 700,1135 850,1110 1010,1190"
+        fill="none" stroke="url(#ropeTwistB)" strokeWidth={42} strokeLinecap="round" opacity={0.9}
+      />
+    </svg>
+  );
+}
+
 /* ---------- Home / landing page ---------- */
 
 const FEATURES = [
@@ -504,104 +551,110 @@ function HomePage({ session, studentName, onEnter }) {
 
   return (
     <div style={styles.homePage} ref={topRef}>
-      <div style={styles.homeNav}>
-        <div style={styles.headerLeft}>
-          <div style={styles.crest} />
-          <div style={styles.headerWordmark}>Board Companion</div>
-        </div>
-        <nav style={styles.homeNavLinks}>
-          <div style={styles.homeNavCtaGroup}>
-            <button style={styles.homeNavAboutBtn} onClick={() => scrollTo(topRef)}>
-              Home
-            </button>
-            <button style={styles.homeNavAboutBtn} onClick={() => scrollTo(subjectsRef)}>
-              Subjects
-            </button>
-            <button style={styles.homeNavAboutBtn} onClick={() => scrollTo(aboutRef)}>
-              About
-            </button>
-            <button
-              style={styles.homeNavCta}
-              onClick={() => (session ? onEnter() : scrollTo(cardRef))}
-            >
-              {session ? "Enter" : "Get started"}
-            </button>
+      <div style={styles.ropeLayer}>
+        <RopeBorder />
+      </div>
+
+      <div style={styles.pageFrame}>
+        <div style={styles.homeNav}>
+          <div style={styles.headerLeft}>
+            <div style={styles.crest} />
+            <div style={styles.headerWordmark}>Board Companion</div>
           </div>
-        </nav>
-      </div>
-
-      <div style={styles.hero}>
-        <div style={styles.heroText}>Welcome.</div>
-        <div style={styles.heroSub}>
-          A Punjab Board study companion for Grade 11 &amp; 12 — Biology, Chemistry, Physics,
-          Computer Science, Mathematics, English, Urdu, Islamic Studies, Pakistan Studies &amp;
-          Tarjumah-tul-Quran, all in one place.
+          <nav style={styles.homeNavLinks}>
+            <div style={styles.homeNavCtaGroup}>
+              <button style={styles.homeNavAboutBtn} onClick={() => scrollTo(topRef)}>
+                Home
+              </button>
+              <button style={styles.homeNavAboutBtn} onClick={() => scrollTo(subjectsRef)}>
+                Subjects
+              </button>
+              <button style={styles.homeNavAboutBtn} onClick={() => scrollTo(aboutRef)}>
+                About
+              </button>
+              <button
+                style={styles.homeNavCta}
+                onClick={() => (session ? onEnter() : scrollTo(cardRef))}
+              >
+                {session ? "Enter" : "Get started"}
+              </button>
+            </div>
+          </nav>
         </div>
-      </div>
 
-      <BohoShapeStrip />
-
-      <div style={styles.featureRow}>
-        {FEATURES.map((f) => {
-          const Icon = f.icon;
-          return (
-            <button
-              key={f.title}
-              className="hoverable-card"
-              onClick={() => (session ? onEnter(f.target) : scrollTo(cardRef))}
-              style={{ ...styles.featureCard, textAlign: "left", cursor: "pointer", fontFamily: "inherit" }}
-            >
-              <div style={styles.featureIcon}><Icon size={18} color="#1B3B2F" /></div>
-              <div style={styles.featureTitle}>{f.title}</div>
-              <div style={styles.featureBody}>{f.body}</div>
-            </button>
-          );
-        })}
-      </div>
-
-      <div style={styles.aboutSection} ref={aboutRef}>
-        <div style={styles.aboutInner}>
-          <div style={styles.aboutEyebrow}>About</div>
-          <div style={styles.aboutTitle}>Built for Punjab Board students, subject by subject.</div>
-          <div style={styles.aboutBody}>
-            Board Companion is a study space for Grade 11 &amp; 12 (Intermediate Part I &amp; II) students
-            following the Punjab Textbook Board syllabus. Pick a subject, ask questions in plain language,
-            generate revision notes or flashcards, and quiz yourself on high-yield topics — all matched to
-            board exam style. Every student's chats and quiz results are kept private to them, so this same
-            companion can be shared with classmates without mixing up progress.
-          </div>
-
-          <div style={styles.aboutSubjectGrid} ref={subjectsRef}>
-            {SUBJECTS.map((s) => {
-              const Icon = s.icon;
-              return (
-                <button
-                  key={s.id}
-                  className="hoverable-chip"
-                  onClick={() => (session ? onEnter("chat", s.id) : scrollTo(cardRef))}
-                  style={{ ...styles.aboutSubjectChip, cursor: "pointer", fontFamily: "inherit" }}
-                >
-                  <Icon size={14} color="#1B3B2F" />
-                  <span>{s.label}</span>
-                </button>
-              );
-            })}
+        <div style={styles.hero}>
+          <div style={styles.heroText}>Welcome.</div>
+          <div style={styles.heroSub}>
+            A Punjab Board study companion for Grade 11 &amp; 12 — Biology, Chemistry, Physics,
+            Computer Science, Mathematics, English, Urdu, Islamic Studies, Pakistan Studies &amp;
+            Tarjumah-tul-Quran, all in one place.
           </div>
         </div>
-      </div>
 
-      <div ref={cardRef}>
-        {session ? (
-          <div style={styles.homeCard}>
-            <div style={styles.homeCardTitle}>Welcome back, {studentName || "there"}.</div>
-            <button style={styles.loginBtn} onClick={() => onEnter()}>
-              Continue to companion
-            </button>
-            <div style={styles.homeCardNote}>Your chats and progress are private to you.</div>
+        <BohoShapeStrip />
+
+        <div style={styles.featureRow}>
+          {FEATURES.map((f) => {
+            const Icon = f.icon;
+            return (
+              <button
+                key={f.title}
+                className="hoverable-card"
+                onClick={() => (session ? onEnter(f.target) : scrollTo(cardRef))}
+                style={{ ...styles.featureCard, textAlign: "left", cursor: "pointer", fontFamily: "inherit" }}
+              >
+                <div style={styles.featureIcon}><Icon size={18} color="#1B3B2F" /></div>
+                <div style={styles.featureTitle}>{f.title}</div>
+                <div style={styles.featureBody}>{f.body}</div>
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={styles.aboutSection} ref={aboutRef}>
+          <div style={styles.aboutInner}>
+            <div style={styles.aboutEyebrow}>About</div>
+            <div style={styles.aboutTitle}>Built for Punjab Board students, subject by subject.</div>
+            <div style={styles.aboutBody}>
+              Board Companion is a study space for Grade 11 &amp; 12 (Intermediate Part I &amp; II) students
+              following the Punjab Textbook Board syllabus. Pick a subject, ask questions in plain language,
+              generate revision notes or flashcards, and quiz yourself on high-yield topics — all matched to
+              board exam style. Every student's chats and quiz results are kept private to them, so this same
+              companion can be shared with classmates without mixing up progress.
+            </div>
+
+            <div style={styles.aboutSubjectGrid} ref={subjectsRef}>
+              {SUBJECTS.map((s) => {
+                const Icon = s.icon;
+                return (
+                  <button
+                    key={s.id}
+                    className="hoverable-chip"
+                    onClick={() => (session ? onEnter("chat", s.id) : scrollTo(cardRef))}
+                    style={{ ...styles.aboutSubjectChip, cursor: "pointer", fontFamily: "inherit" }}
+                  >
+                    <Icon size={14} color="#1B3B2F" />
+                    <span>{s.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        ) : (
-          <AuthScreen styles={styles} />
-        )}
+        </div>
+
+        <div ref={cardRef}>
+          {session ? (
+            <div style={styles.homeCard}>
+              <div style={styles.homeCardTitle}>Welcome back, {studentName || "there"}.</div>
+              <button style={styles.loginBtn} onClick={() => onEnter()}>
+                Continue to companion
+              </button>
+              <div style={styles.homeCardNote}>Your chats and progress are private to you.</div>
+            </div>
+          ) : (
+            <AuthScreen styles={styles} />
+          )}
+        </div>
       </div>
 
       <div style={styles.bohoBottomFill}>
@@ -1933,7 +1986,13 @@ const styles = {
   /* Home / landing page */
   homePage: {
     background: "#F3FAF0", minHeight: "100vh", padding: "18px 28px 40px",
-    display: "flex", flexDirection: "column",
+    display: "flex", flexDirection: "column", position: "relative", zIndex: 0,
+  },
+  ropeLayer: { position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: -1 },
+  pageFrame: {
+    background: "#F8FBF5", border: "1px solid #DCE8D5", borderRadius: "220px 220px 30px 30px",
+    maxWidth: 920, width: "100%", margin: "0 auto", padding: "40px 56px 44px",
+    boxShadow: "0 24px 60px rgba(27,59,47,0.10)", display: "flex", flexDirection: "column",
   },
   bohoBottomFill: { height: 90, overflow: "hidden", position: "relative", marginTop: 16, flexShrink: 0 },
   homeNav: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 },
