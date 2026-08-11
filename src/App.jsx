@@ -455,6 +455,10 @@ function HomePage({ session, studentName, onEnter }) {
   const scrollTo = (ref) => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   const [bgSize, setBgSize] = useState("cover");
+  // width of the empty side margin beside the centered content column, used
+  // to size/hide the chemistry-doodle strips below — 0 means "no room,
+  // don't render them" (the mobile case: content already fills the width).
+  const [doodleWidth, setDoodleWidth] = useState(0);
   useEffect(() => {
     const el = topRef.current;
     if (!el) return;
@@ -466,6 +470,12 @@ function HomePage({ session, studentName, onEnter }) {
       // own portrait shape, cover's crop becomes severe enough to lose the
       // side ropes entirely — switch to contain rather than let that happen
       setBgSize(containerAspect > HERO_BG_ASPECT * 1.35 ? "contain" : "cover");
+
+      // widest content column is ~820px (featureRow); anything left over on
+      // either side is "empty" and safe for the doodle. Below ~40px of
+      // margin there's no meaningful room, so the strip is hidden entirely.
+      const margin = (width - 860) / 2;
+      setDoodleWidth(Math.max(0, Math.min(240, margin - 40)));
     };
     recompute();
     const ro = new ResizeObserver(recompute);
@@ -479,6 +489,13 @@ function HomePage({ session, studentName, onEnter }) {
 
   return (
     <div style={{ ...styles.homePage, backgroundSize: bgSize }} ref={topRef}>
+      {doodleWidth > 0 && (
+        <>
+          <div style={{ ...styles.doodleStrip, left: 0, width: doodleWidth, backgroundSize: `${doodleWidth}px auto` }} />
+          <div style={{ ...styles.doodleStrip, right: 0, width: doodleWidth, backgroundSize: `${doodleWidth}px auto` }} />
+        </>
+      )}
+
       <div style={styles.homeNav}>
         <div style={styles.headerLeft}>
           <div style={styles.crest} />
@@ -2040,7 +2057,18 @@ const styles = {
     backgroundColor: "#F3FAF0", backgroundImage: "url(/hero-bg.png)", backgroundRepeat: "no-repeat",
     backgroundSize: "cover", backgroundPosition: "center top",
     width: "100%", boxSizing: "border-box", minHeight: "100vh", padding: "18px 28px 40px",
-    display: "flex", flexDirection: "column",
+    display: "flex", flexDirection: "column", position: "relative", zIndex: 0,
+  },
+  // Chemistry-doodle side strips — only rendered when there's real empty
+  // margin beside the centered content column (see doodleWidth in
+  // HomePage), so on mobile (content fills the width) they simply don't
+  // render rather than needing a separate mobile override. Negative
+  // z-index + homePage's own zIndex:0 above keeps them behind every piece
+  // of real content without an explicit z-index on each content element.
+  doodleStrip: {
+    position: "absolute", top: 0, bottom: 0, backgroundImage: "url(/chem-doodle.png)",
+    backgroundRepeat: "repeat-y", backgroundPosition: "top center",
+    pointerEvents: "none", zIndex: -1,
   },
   homeNav: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, minWidth: 0 },
   homeNavLinks: { display: "flex", alignItems: "center", gap: 22 },
