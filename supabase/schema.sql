@@ -159,6 +159,41 @@ create policy "attempts_all_own" on public.attempts
 create policy "attempts_select_all_for_teachers" on public.attempts
   for select using (public.is_teacher_of(user_id));
 
+-- ========== class leaderboard (classmate read access) ==========
+-- "is the caller a student who shares a class with this target student" —
+-- same security-definer pattern as is_teacher_of() above, and for the same
+-- reason: an inline subquery on public.profiles inside a policy defined ON
+-- public.profiles would recurse. Only exposes profiles/attempts (the same
+-- "progress data" category the teacher dashboard already reads), never
+-- chat_history — that table still has no policy but the owning student's,
+-- see below.
+create function public.is_classmate_of(target_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1
+    from public.profiles me
+    join public.profiles them on them.class_id = me.class_id
+    where me.id = auth.uid() and them.id = target_id and me.class_id is not null
+  );
+$$;
+
+revoke execute on function public.is_classmate_of(uuid) from anon, authenticated;
+
+-- students can read the name (only) of classmates, to render a leaderboard
+create policy "profiles_select_classmates" on public.profiles
+  for select using (public.is_classmate_of(id));
+
+-- students can read classmates' attempts (same data a teacher already sees)
+-- so streak/quiz-count can be computed client-side with the existing
+-- progress.js helpers, instead of duplicating that math in SQL
+create policy "attempts_select_classmates" on public.attempts
+  for select using (public.is_classmate_of(user_id));
+
 -- ========== chat_history ==========
 -- One row per (student, grade, subject). Deliberately has NO teacher-read
 -- policy anywhere — chat stays private to the student, full stop. This is

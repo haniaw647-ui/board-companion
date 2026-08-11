@@ -109,6 +109,27 @@ export function computeStreak(attempts) {
   return { current, longest, activeToday: gapToToday === 0 };
 }
 
+// Class leaderboard ranking, reusing computeStreak per classmate rather than
+// duplicating streak math. Ranked by current streak first (matches the
+// header's own flame chip — "showing up" is the metric this app already
+// celebrates), total quizzes taken as the tiebreaker. `roster` is
+// [{id, name}] and `attemptsByUser` is { [id]: attempts } — both come
+// straight from the same db.js helpers the teacher dashboard already uses
+// (getStudentRoster / getAllAttemptsForRoster).
+export function rankClassmates(roster, attemptsByUser) {
+  return roster
+    .map((s) => {
+      const attempts = attemptsByUser[s.id] || {};
+      const { current } = computeStreak(attempts);
+      let totalAttempts = 0;
+      Object.values(attempts).forEach((bySubject) => {
+        Object.values(bySubject).forEach((list) => { totalAttempts += list.length; });
+      });
+      return { id: s.id, name: s.name, streak: current, totalAttempts };
+    })
+    .sort((a, b) => b.streak - a.streak || b.totalAttempts - a.totalAttempts);
+}
+
 // Milestone badges, computed fresh on every render rather than stored — all
 // the inputs (attempts, streak) already exist, so persisting "earned" state
 // separately would just be a second source of truth that could drift.

@@ -1,6 +1,6 @@
 import React from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import { Rocket, Flame, Trophy, Award, Star, Target, ListChecks, Printer } from "lucide-react";
+import { Rocket, Flame, Trophy, Award, Star, Target, ListChecks, Printer, Users } from "lucide-react";
 import { PIE_COLORS } from "../lib/progress";
 
 // One icon per achievement id from computeAchievements() in lib/progress.js
@@ -22,7 +22,10 @@ const ACHIEVEMENT_ICONS = {
 // `achievements` is optional too, but shown in both views (read-only, no
 // callback needed) since a teacher seeing a student's earned badges isn't
 // a privacy concern — it's the same mastery data already on this page.
-export default function ProgressReport({ styles, grade, studentName, pieData, overallPct, subjects, mastery, attempts, weakTopics, onPractice, achievements }) {
+// `leaderboard` + `myId` are student-view only (the teacher dashboard
+// never passes them) — a ranked list of classmates by study streak, from
+// rankClassmates() in lib/progress.js.
+export default function ProgressReport({ styles, grade, studentName, pieData, overallPct, subjects, mastery, attempts, weakTopics, onPractice, achievements, leaderboard, myId }) {
   return (
     <div style={{ padding: "4px 4px 24px" }}>
       <div style={styles.dmc} className="print-report">
@@ -85,6 +88,21 @@ export default function ProgressReport({ styles, grade, studentName, pieData, ov
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {leaderboard && leaderboard.length > 1 && (
+          <div style={styles.leaderboardCard} className="no-print">
+            <div style={styles.focusTitle}><Users size={14} style={{ verticalAlign: "middle", marginRight: 6 }} />Class leaderboard</div>
+            <div style={styles.focusSub}>Ranked by current study streak.</div>
+            {leaderboard.map((s, i) => (
+              <div key={s.id} style={{ ...styles.leaderboardRow, ...(s.id === myId ? styles.leaderboardRowMe : {}) }}>
+                <div style={styles.leaderboardRank}>#{i + 1}</div>
+                <div style={styles.leaderboardName}>{s.name || "Unnamed student"}{s.id === myId ? " (you)" : ""}</div>
+                <div style={styles.leaderboardStreak}><Flame size={13} color="#B6CC8E" /> {s.streak}</div>
+                <div style={styles.leaderboardTotal}>{s.totalAttempts} quiz{s.totalAttempts === 1 ? "" : "zes"}</div>
+              </div>
+            ))}
           </div>
         )}
 

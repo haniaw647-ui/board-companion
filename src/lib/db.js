@@ -10,7 +10,7 @@ const SUBJECT_IDS = ["physics", "chemistry", "biology", "english", "urdu", "isla
 export async function getProfile(userId) {
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, name, role")
+    .select("id, name, role, class_id")
     .eq("id", userId)
     .single();
   if (error) throw error;
@@ -180,7 +180,11 @@ export async function joinClassByCode(userId, code) {
   return { joined: true, className: cls.name };
 }
 
-/* ---------- teacher dashboard ---------- */
+/* ---------- teacher dashboard + class leaderboard ----------
+   getStudentRoster/getAllAttemptsForRoster are shared by TeacherDashboard.jsx
+   and the student-facing class leaderboard in App.jsx (see rankClassmates()
+   in lib/progress.js) — same query, different RLS policy grants access
+   depending on whether the caller is that class's teacher or a classmate. */
 
 export async function getStudentRoster(classId) {
   const { data, error } = await supabase

@@ -65,6 +65,13 @@ Features already built:
 - **Teacher dashboard**: accounts promoted to `role='teacher'` see a roster
   of students with progress/mastery only, never chat — see "Backend:
   Supabase" below for the privacy design
+- **Class leaderboard**: on the student's own Progress Report (not shown in
+  the teacher dashboard), classmates ranked by current study streak, quiz
+  count as tiebreaker — `rankClassmates()` in `src/lib/progress.js`, reusing
+  `computeStreak()` rather than duplicating that math. Only renders once a
+  student has joined a class (`profile.class_id` set) and there's at least
+  one classmate; excluded from the printable report (`no-print`). Needs a
+  new RLS grant — see "Backend: Supabase" below.
 
 ## Origin: converted from a Claude.ai artifact
 
@@ -109,6 +116,16 @@ localStorage. Key files:
   `profiles_select_all_for_teachers` / `attempts_select_all_for_teachers`
   policies — a blanket `is_teacher()` check would leak every student to
   every teacher, which is exactly what this replaced.
+- **Classmate scoping (leaderboard)**: same shape as teacher scoping above —
+  `public.is_classmate_of(target_id)` (also `security definer`, to avoid the
+  same profiles-querying-profiles recursion `is_teacher_of` avoids) backs
+  `profiles_select_classmates` / `attempts_select_classmates`, letting a
+  student read *only* the name + attempts of classmates sharing their
+  `class_id` — the same "progress data" category the teacher already reads,
+  never `chat_history` (that table still grants nothing beyond the owning
+  student). `getStudentRoster`/`getAllAttemptsForRoster` in `db.js` are
+  reused as-is for this — same queries, the RLS policy is what changes
+  which caller can see which rows.
 - `src/lib/supabaseClient.js`, `src/lib/db.js` (every query), `src/lib/progress.js`
   (pure mastery/pie-chart math shared by the student's own progress tab and
   the teacher dashboard).

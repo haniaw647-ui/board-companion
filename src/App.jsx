@@ -12,6 +12,7 @@ import {
   weakTopics as weakTopicsFor,
   computeStreak,
   computeAchievements,
+  rankClassmates,
   PIE_COLORS,
 } from "./lib/progress";
 import { SUBJECTS, subjectsForGrade } from "./lib/subjects";
@@ -566,6 +567,7 @@ export default function BoardCompanion() {
   const [quizAnswers, setQuizAnswers] = useState({});
   const [quizResult, setQuizResult] = useState(null);
   const [attempts, setAttempts] = useState({}); // {grade: {subject: [{score,total,date}]}}
+  const [leaderboard, setLeaderboard] = useState([]); // classmates ranked by streak, see rankClassmates()
   const [initLoaded, setInitLoaded] = useState(false);
   const [pendingAction, setPendingAction] = useState(null); // 'notes' | 'flashcards' | 'mindmap' | null
   const [topicDraft, setTopicDraft] = useState("");
@@ -610,6 +612,21 @@ export default function BoardCompanion() {
       if (db.hasLocalDataToImport()) setShowImportPrompt(true);
     })();
   }, [session]);
+
+  /* class leaderboard: only fetchable once we know our own class_id (a
+     student who hasn't entered a class code has none, and gets no
+     leaderboard — see rankClassmates() for the ranking itself) */
+  useEffect(() => {
+    if (!profile?.class_id) {
+      setLeaderboard([]);
+      return;
+    }
+    (async () => {
+      const roster = await db.getStudentRoster(profile.class_id);
+      const attemptsByUser = await db.getAllAttemptsForRoster(roster.map((s) => s.id));
+      setLeaderboard(rankClassmates(roster, attemptsByUser));
+    })();
+  }, [profile?.class_id]);
 
   /* load chat history whenever subject/grade changes */
   useEffect(() => {
@@ -1240,6 +1257,8 @@ export default function BoardCompanion() {
               weakTopics={focusAreas}
               onPractice={practiceTopic}
               achievements={achievements}
+              leaderboard={leaderboard}
+              myId={session?.user?.id}
             />
           )}
         </main>
@@ -1852,6 +1871,22 @@ const styles = {
   },
   badgeEarned: { background: "#D9F0E4", color: "#0F6B4F", borderColor: "#B6CC8E" },
   badgeLocked: { background: "#F3FAF0", color: "#B6C4AE", borderColor: "#DCEED7" },
+  leaderboardCard: {
+    background: "#F5FAF3", border: "1px solid #C9DDC3", borderRadius: 18,
+    padding: "16px 18px", marginBottom: 22,
+  },
+  leaderboardRow: {
+    display: "grid", gridTemplateColumns: "32px 1fr auto auto", alignItems: "center", gap: 10,
+    padding: "8px 0", borderTop: "1px solid #DCEED7",
+  },
+  leaderboardRowMe: { background: "#D9F0E4", borderRadius: 10, padding: "8px 8px" },
+  leaderboardRank: { fontSize: 11.5, fontWeight: 700, color: "#93A683", fontFamily: "Arial, sans-serif" },
+  leaderboardName: { fontSize: 12.5, fontWeight: 600, color: "#2F3D30", fontFamily: "Arial, sans-serif" },
+  leaderboardStreak: {
+    display: "flex", alignItems: "center", gap: 4, fontSize: 12, fontWeight: 700,
+    color: "#4A5A2E", fontFamily: "Arial, sans-serif",
+  },
+  leaderboardTotal: { fontSize: 11, color: "#93A683", fontFamily: "Arial, sans-serif", whiteSpace: "nowrap" },
   reportGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 },
   pieWrap: { display: "flex", alignItems: "center", justifyContent: "center" },
   subjectTable: { display: "flex", flexDirection: "column", gap: 12, justifyContent: "center" },
