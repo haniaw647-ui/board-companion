@@ -302,29 +302,30 @@ nav, chat bubbles). Flashcards and mind map are intentionally a **dark**
 contrasting panel (#2E3340 / #22242F) — a deliberate style choice, not an
 inconsistency to "fix."
 
-**Landing page corner decoration**: three small fixed-size (220x240px)
-photo crops — `public/hero-corner-tr.png`, `-bl.png`, `-br.png` — pinned to
-their respective corners of `styles.homePage` (`cornerPhotoBase`/`TR`/`BL`/
-`BR` in `App.jsx`), cropped from a botanical twisted-rope reference photo
-the student provided and background-removed (Pillow: flood-fill any pixel
-near the photo's own cream backdrop color to transparent, then blur the
-mask edge) so they blend into the app's green page background instead of
-showing as a hard-edged box. No top-left crop — that corner of the source
-photo has no rope in it, so there's nothing there by design, not a bug.
+**Landing page background**: `public/hero-bg.png` (a botanical twisted-rope
+reference photo the student provided, with its baked-in fake UI erased —
+see git history on that file for the Pillow steps) set as one single
+`background-image` on `styles.homePage`, `background-size: "contain"`,
+`background-position: "top center"`, `background-repeat: "no-repeat"`.
+One image, one layer — not cropped into pieces, not stretched, not tiled.
 
-This replaced an earlier single-image approach (one `hero-bg.png` set as
-`background-image` on `homePage` with `background-size: cover`) that kept
-breaking in new ways depending on viewport shape: `cover`'s crop window is
-a function of the *container's* aspect ratio, and this page's aspect ratio
-swings enormously — a wide/short desktop monitor vs. a long, narrow,
-content-driven column on mobile — so the same image showed different
-(sometimes empty) slices of itself depending on screen size, once even
-hiding the left-side rope entirely on a very wide monitor while showing
-the right side. A fixed-pixel box sidesteps the whole class of bug: its
-aspect ratio never changes, so there's nothing for it to crop differently.
-If this ever needs a fourth (top-left) accent or a different photo, re-run
-the same crop-then-transparency-cutout process rather than going back to
-a single cover-scaled background image.
+This setting was chosen deliberately over `background-size: "cover"`
+after `cover` broke in two different ways depending on screen shape:
+`cover`'s crop window is a function of the *container's* aspect ratio,
+and this page's aspect ratio swings enormously (a wide/short desktop
+monitor vs. a long, narrow, content-driven column on mobile) — `cover`
+once hid the entire left-side rope on a very wide monitor while keeping
+the right side, since it only rendered whichever image slice matched the
+container's own proportions. `contain` never crops, so the whole photo
+(both ropes, both bottom leaf corners, the arch) is always fully visible
+— the tradeoff is real and worth knowing: on a much wider-than-tall
+screen the image renders as a narrower centered band with plain page
+background on either side, and on a much taller-than-wide screen (long
+mobile pages) the image doesn't stretch to fill the extra height, so the
+lower part of the page is plain background beyond where the photo ends.
+That's the accepted cost of "never crop, never distort, single layer" —
+a corner-crop-based alternative was tried and explicitly reverted per the
+student's direction to keep the original image intact and unmodified.
 
 **Kept deliberately non-green**: the danger/error family (#C1594A wrong
 answers, delete-button red) — these are functional (right/wrong,
