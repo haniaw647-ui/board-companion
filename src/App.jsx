@@ -423,58 +423,66 @@ function BohoShapeStrip() {
   );
 }
 
-/* ---------- Decorative botanical border (bottom of landing/teacher pages,
-   fills whatever leftover vertical space is left below the content on a
-   tall window — leaf shapes clustered along the edges, like a loose vine
-   border, in the app's existing green palette). Never forces scrolling:
-   see styles.bohoBottomFill, which is flex:1 with no minHeight. ---------- */
+/* ---------- Decorative botanical border (bottom of landing/teacher pages)
+   — a dense spray of thin, curved blade-shaped leaves fanning out from each
+   bottom corner, closer to a wheat/vine border than a scattered handful of
+   round leaves. Fixed height (see styles.bohoBottomFill), so it never grows
+   to force page scrolling. ---------- */
 
-// One leaf: a pointed-oval path with a center vein, defined in local
-// coordinates pointing up (-y) and centered at the origin, then positioned
-// via an SVG transform so callers only pick x/y/size/rotation/color.
-function Leaf({ x, y, length, width, rotation, color, opacity = 0.85 }) {
-  const h = length / 2, w = width;
+// One blade: a thin asymmetric sliver (fuller on one side, tapering to a
+// point at both the base and tip), defined pointing up (-y) from the
+// origin, then positioned/rotated via an SVG transform.
+function LeafBlade({ x, y, length, width, rotation, color, opacity = 0.8 }) {
+  const L = length, W = width;
+  const d = `M 0,0 C ${W} ${-L * 0.32}, ${W * 0.9} ${-L * 0.72}, 0 ${-L} ` +
+    `C ${-W * 0.35} ${-L * 0.72}, ${-W * 0.22} ${-L * 0.32}, 0 0 Z`;
   return (
-    <g transform={`translate(${x} ${y}) rotate(${rotation})`} opacity={opacity}>
-      <path
-        d={`M 0,${-h} C ${-w},${-h / 3} ${-w},${h / 3} 0,${h} C ${w},${h / 3} ${w},${-h / 3} 0,${-h} Z`}
-        fill={color}
-      />
-      <line x1="0" y1={-h * 0.85} x2="0" y2={h * 0.85} stroke="#1B3B2F" strokeWidth="1" opacity="0.35" />
-    </g>
+    <path d={d} fill={color} opacity={opacity} transform={`translate(${x} ${y}) rotate(${rotation})`} />
+  );
+}
+
+// A fan of blades sprouting from one corner point, mirrored for the other
+// corner via the `flip` sign on both the x-offset and rotation.
+function BladeCluster({ cx, cy, flip }) {
+  const blades = [
+    { angle: -20, length: 150, width: 30, color: "#4A5A2E", opacity: 0.85 },
+    { angle: -45, length: 175, width: 34, color: "#6B7A3D", opacity: 0.85 },
+    { angle: -65, length: 130, width: 26, color: "#93A683", opacity: 0.8 },
+    { angle: 5, length: 110, width: 22, color: "#6B7A3D", opacity: 0.75 },
+    { angle: -85, length: 100, width: 20, color: "#B6CC8E", opacity: 0.8 },
+    { angle: -32, length: 90, width: 18, color: "#0F6B4F", opacity: 0.7 },
+    { angle: 22, length: 75, width: 16, color: "#93A683", opacity: 0.7 },
+    { angle: -55, length: 65, width: 14, color: "#4A5A2E", opacity: 0.6 },
+    { angle: -8, length: 55, width: 12, color: "#B6CC8E", opacity: 0.65 },
+  ];
+  return (
+    <>
+      {blades.map((b, i) => (
+        <LeafBlade
+          key={i}
+          x={cx}
+          y={cy}
+          length={b.length}
+          width={b.width}
+          rotation={flip * b.angle}
+          color={b.color}
+          opacity={b.opacity}
+        />
+      ))}
+    </>
   );
 }
 
 function BohoBottomFill() {
   return (
     <svg
-      viewBox="0 0 1200 320"
+      viewBox="0 0 1200 200"
       style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }}
-      preserveAspectRatio="xMidYMid slice"
+      preserveAspectRatio="xMidYMax slice"
       aria-hidden="true"
     >
-      {/* bottom-left cluster */}
-      <Leaf x={70} y={260} length={140} width={38} rotation={-25} color="#6B7A3D" />
-      <Leaf x={40} y={190} length={110} width={30} rotation={15} color="#93A683" opacity={0.8} />
-      <Leaf x={130} y={220} length={90} width={26} rotation={-60} color="#0F6B4F" opacity={0.75} />
-      <Leaf x={20} y={280} length={70} width={22} rotation={40} color="#B6CC8E" opacity={0.9} />
-
-      {/* bottom-center sprig */}
-      <Leaf x={430} y={300} length={80} width={24} rotation={-10} color="#93A683" opacity={0.7} />
-      <Leaf x={470} y={290} length={60} width={18} rotation={30} color="#6B7A3D" opacity={0.6} />
-
-      {/* bottom-right cluster (mirrored) */}
-      <Leaf x={1130} y={260} length={140} width={38} rotation={25} color="#6B7A3D" />
-      <Leaf x={1160} y={190} length={110} width={30} rotation={-15} color="#93A683" opacity={0.8} />
-      <Leaf x={1070} y={220} length={90} width={26} rotation={60} color="#0F6B4F" opacity={0.75} />
-      <Leaf x={1180} y={280} length={70} width={22} rotation={-40} color="#B6CC8E" opacity={0.9} />
-
-      {/* small accents along the top edge of the fill, echoing the header strip */}
-      <g fill="#6B7A3D" opacity="0.4">
-        {Array.from({ length: 18 }).map((_, i) => (
-          <circle key={i} cx={560 + (i % 6) * 11 + ((i * 7) % 5)} cy={30 + Math.floor(i / 6) * 11} r="2.2" />
-        ))}
-      </g>
+      <BladeCluster cx={30} cy={200} flip={1} />
+      <BladeCluster cx={1170} cy={200} flip={-1} />
     </svg>
   );
 }
