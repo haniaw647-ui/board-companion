@@ -2001,8 +2001,8 @@ const styles = {
   /* Home / landing page */
   homePage: {
     backgroundColor: "#F3FAF0", backgroundImage: "url(/hero-bg.png)", backgroundRepeat: "no-repeat",
-    backgroundSize: "contain", backgroundPosition: "top center",
-    minHeight: "100vh", padding: "18px 28px 40px",
+    backgroundSize: "cover", backgroundPosition: "center top",
+    width: "100%", boxSizing: "border-box", minHeight: "100vh", padding: "18px 28px 40px",
     display: "flex", flexDirection: "column",
   },
   homeNav: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, minWidth: 0 },
