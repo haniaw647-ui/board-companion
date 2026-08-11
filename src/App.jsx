@@ -490,18 +490,32 @@ function BohoBottomFill() {
 /* ---------- Decorative rope frame (wraps around the landing page's arch
    card) — two thick twisted-rope strands sweeping diagonally behind the
    card, visible only in the margin where the card doesn't cover them.
-   The "twist" is faked with a rotated two-tone stripe pattern used as the
+   The "twist" is faked with a herringbone-weave pattern used as the
    stroke paint on a thick rounded-cap path, rather than literal braiding
-   geometry. Uses preserveAspectRatio="none" so the strand ends reliably
-   land near the actual page corners regardless of the container's aspect
-   ratio (the card's own opaque background hides most of the distortion
-   this introduces). ---------- */
-function RopeBorder() {
+   geometry.
+
+   Rendered as two independent fixed-height bands (see ropeLayerTop /
+   ropeLayerBottom below) rather than one layer stretched over the whole
+   homePage. homePage's total height swings from roughly square on wide
+   desktop layouts to very tall on mobile (feature cards stack full-width
+   instead of sitting in a row) — a single non-uniform "none" mapping
+   over that whole range was scaling X and Y by very different factors
+   (measured ~0.57x vs. ~1.49x on one test width), stretching the
+   herringbone tiles into skewed parallelograms. A uniform "slice" over
+   the same full-height range fixed the skew but went too far the other
+   way, scaling up so much to cover the height that almost the entire
+   1000-wide strand layout got cropped off screen. Bounding each band to
+   a fixed pixel height keeps the effective aspect ratio in a sane range
+   at any viewport width, so "slice" can do a uniform, undistorted scale
+   with only mild edge cropping — xMidYMin surfaces the artwork's top
+   portion (strands entering from the top corners) for the top band,
+   xMidYMax surfaces its bottom portion for the bottom band. ---------- */
+function RopeBorder({ anchor }) {
   return (
     <svg
       viewBox="0 0 1000 1200"
       style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }}
-      preserveAspectRatio="none"
+      preserveAspectRatio={anchor === "bottom" ? "xMidYMax slice" : "xMidYMin slice"}
       aria-hidden="true"
     >
       <defs>
@@ -562,8 +576,11 @@ function HomePage({ session, studentName, onEnter }) {
 
   return (
     <div style={styles.homePage} ref={topRef}>
-      <div style={styles.ropeLayer}>
-        <RopeBorder />
+      <div style={styles.ropeLayerTop}>
+        <RopeBorder anchor="top" />
+      </div>
+      <div style={styles.ropeLayerBottom}>
+        <RopeBorder anchor="bottom" />
       </div>
 
       <div style={styles.pageFrame}>
@@ -2013,7 +2030,14 @@ const styles = {
     background: "#F3FAF0", minHeight: "100vh", padding: "18px 28px 40px",
     display: "flex", flexDirection: "column", position: "relative", zIndex: 0,
   },
-  ropeLayer: { position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: -1 },
+  ropeLayerTop: {
+    position: "absolute", top: 0, left: 0, right: 0, height: 460,
+    overflow: "hidden", pointerEvents: "none", zIndex: -1,
+  },
+  ropeLayerBottom: {
+    position: "absolute", bottom: 0, left: 0, right: 0, height: 460,
+    overflow: "hidden", pointerEvents: "none", zIndex: -1,
+  },
   pageFrame: {
     background: "#F8FBF5", border: "1px solid #DCE8D5",
     borderRadius: "clamp(48px, 20vw, 220px) clamp(48px, 20vw, 220px) 30px 30px",
