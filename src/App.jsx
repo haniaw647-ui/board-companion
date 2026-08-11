@@ -423,142 +423,6 @@ function BohoShapeStrip() {
   );
 }
 
-/* ---------- Decorative botanical border (bottom of landing/teacher pages)
-   — a dense spray of thin, curved blade-shaped leaves fanning out from each
-   bottom corner, closer to a wheat/vine border than a scattered handful of
-   round leaves. Fixed height (see styles.bohoBottomFill), so it never grows
-   to force page scrolling. ---------- */
-
-// One blade: a thin asymmetric sliver (fuller on one side, tapering to a
-// point at both the base and tip), defined pointing up (-y) from the
-// origin, then positioned/rotated via an SVG transform.
-function LeafBlade({ x, y, length, width, rotation, color, opacity = 0.8 }) {
-  const L = length, W = width;
-  const d = `M 0,0 C ${W} ${-L * 0.32}, ${W * 0.9} ${-L * 0.72}, 0 ${-L} ` +
-    `C ${-W * 0.35} ${-L * 0.72}, ${-W * 0.22} ${-L * 0.32}, 0 0 Z`;
-  return (
-    <path d={d} fill={color} opacity={opacity} transform={`translate(${x} ${y}) rotate(${rotation})`} />
-  );
-}
-
-// A fan of blades sprouting from one corner point, mirrored for the other
-// corner via the `flip` sign on both the x-offset and rotation.
-function BladeCluster({ cx, cy, flip }) {
-  const blades = [
-    { angle: -20, length: 150, width: 30, color: "#4A5A2E", opacity: 0.85 },
-    { angle: -45, length: 175, width: 34, color: "#6B7A3D", opacity: 0.85 },
-    { angle: -65, length: 130, width: 26, color: "#93A683", opacity: 0.8 },
-    { angle: 5, length: 110, width: 22, color: "#6B7A3D", opacity: 0.75 },
-    { angle: -85, length: 100, width: 20, color: "#B6CC8E", opacity: 0.8 },
-    { angle: -32, length: 90, width: 18, color: "#0F6B4F", opacity: 0.7 },
-    { angle: 22, length: 75, width: 16, color: "#93A683", opacity: 0.7 },
-    { angle: -55, length: 65, width: 14, color: "#4A5A2E", opacity: 0.6 },
-    { angle: -8, length: 55, width: 12, color: "#B6CC8E", opacity: 0.65 },
-  ];
-  return (
-    <>
-      {blades.map((b, i) => (
-        <LeafBlade
-          key={i}
-          x={cx}
-          y={cy}
-          length={b.length}
-          width={b.width}
-          rotation={flip * b.angle}
-          color={b.color}
-          opacity={b.opacity}
-        />
-      ))}
-    </>
-  );
-}
-
-function BohoBottomFill() {
-  return (
-    <svg
-      viewBox="0 0 1200 200"
-      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }}
-      preserveAspectRatio="xMidYMax slice"
-      aria-hidden="true"
-    >
-      <BladeCluster cx={30} cy={200} flip={1} />
-      <BladeCluster cx={1170} cy={200} flip={-1} />
-    </svg>
-  );
-}
-
-/* ---------- Decorative rope frame (wraps around the landing page's arch
-   card) — two thick twisted-rope strands sweeping diagonally behind the
-   card, visible only in the margin where the card doesn't cover them.
-   The "twist" is faked with a herringbone-weave pattern used as the
-   stroke paint on a thick rounded-cap path, rather than literal braiding
-   geometry.
-
-   Rendered as two independent fixed-height bands (see ropeLayerTop /
-   ropeLayerBottom below) rather than one layer stretched over the whole
-   homePage. homePage's total height swings from roughly square on wide
-   desktop layouts to very tall on mobile (feature cards stack full-width
-   instead of sitting in a row) — a single non-uniform "none" mapping
-   over that whole range was scaling X and Y by very different factors
-   (measured ~0.57x vs. ~1.49x on one test width), stretching the
-   herringbone tiles into skewed parallelograms. A uniform "slice" over
-   the same full-height range fixed the skew but went too far the other
-   way, scaling up so much to cover the height that almost the entire
-   1000-wide strand layout got cropped off screen. Bounding each band to
-   a fixed pixel height keeps the effective aspect ratio in a sane range
-   at any viewport width, so "slice" can do a uniform, undistorted scale
-   with only mild edge cropping — xMidYMin surfaces the artwork's top
-   portion (strands entering from the top corners) for the top band,
-   xMidYMax surfaces its bottom portion for the bottom band. ---------- */
-function RopeBorder({ anchor }) {
-  return (
-    <svg
-      viewBox="0 0 1000 1200"
-      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", display: "block" }}
-      preserveAspectRatio={anchor === "bottom" ? "xMidYMax slice" : "xMidYMin slice"}
-      aria-hidden="true"
-    >
-      <defs>
-        {/* herringbone/chevron weave — reads as twisted fiber strands rather
-            than flat diagonal stripes, closer to a real rope's surface */}
-        <pattern id="ropeTwistA" patternUnits="userSpaceOnUse" width="26" height="26" patternTransform="rotate(50)">
-          <rect width="26" height="26" fill="#C7CBA8" />
-          <path d="M0 13 L13 0 L26 13 L13 26 Z" fill="#9CA378" />
-          <path d="M0 13 L13 0 L13 26 Z" fill="#828C5E" opacity="0.55" />
-          <path d="M0 0 L4 4 M22 22 L26 26" stroke="#5F6A44" strokeWidth="1.5" opacity="0.4" />
-        </pattern>
-        <pattern id="ropeTwistB" patternUnits="userSpaceOnUse" width="20" height="20" patternTransform="rotate(-40)">
-          <rect width="20" height="20" fill="#DDE1C6" />
-          <path d="M0 10 L10 0 L20 10 L10 20 Z" fill="#B3BA8E" />
-          <path d="M0 10 L10 0 L10 20 Z" fill="#98A171" opacity="0.5" />
-        </pattern>
-      </defs>
-
-      {/* soft shadow strand, offset slightly for depth */}
-      <path
-        d="M 1020,-30 C 1090,300 880,540 980,770 C 1070,1010 700,1150 440,1195 C 210,1235 30,1140 -40,1245"
-        fill="none" stroke="#4A5A2E" strokeWidth={92} strokeLinecap="round" opacity={0.2}
-      />
-      {/* main heavy twisted strand: top-right down to bottom-left */}
-      <path
-        d="M 1010,-40 C 1080,290 870,530 970,760 C 1060,1000 690,1140 430,1185 C 200,1225 20,1130 -50,1235"
-        fill="none" stroke="url(#ropeTwistA)" strokeWidth={80} strokeLinecap="round"
-      />
-      {/* thin pale highlight tracing one edge of the main strand, for a glossy-fiber look */}
-      <path
-        d="M 1010,-40 C 1080,290 870,530 970,760 C 1060,1000 690,1140 430,1185 C 200,1225 20,1130 -50,1235"
-        fill="none" stroke="#EEF1E0" strokeWidth={10} strokeLinecap="round" opacity={0.35}
-        transform="translate(-14,-10)"
-      />
-      {/* secondary lighter strand: top-left sweeping down the left side */}
-      <path
-        d="M 0,-40 C -70,260 170,470 60,690 C -50,900 270,1010 520,1090 C 700,1145 850,1115 1010,1195"
-        fill="none" stroke="url(#ropeTwistB)" strokeWidth={50} strokeLinecap="round" opacity={0.92}
-      />
-    </svg>
-  );
-}
-
 /* ---------- Home / landing page ---------- */
 
 const FEATURES = [
@@ -576,131 +440,104 @@ function HomePage({ session, studentName, onEnter }) {
 
   return (
     <div style={styles.homePage} ref={topRef}>
-      <div style={styles.ropeLayerTop}>
-        <RopeBorder anchor="top" />
-      </div>
-      <div style={styles.ropeLayerBottom}>
-        <RopeBorder anchor="bottom" />
-      </div>
-
-      <div style={styles.pageFrame}>
-        <div style={styles.homeNav}>
-          <div style={styles.headerLeft}>
-            <div style={styles.crest} />
-            <div style={styles.headerWordmark}>Board Companion</div>
+      <div style={styles.homeNav}>
+        <div style={styles.headerLeft}>
+          <div style={styles.crest} />
+          <div style={styles.headerWordmark}>Board Companion</div>
+        </div>
+        <nav style={styles.homeNavLinks}>
+          <div style={styles.homeNavCtaGroup}>
+            <button style={styles.homeNavAboutBtn} onClick={() => scrollTo(topRef)}>
+              Home
+            </button>
+            <button style={styles.homeNavAboutBtn} onClick={() => scrollTo(subjectsRef)}>
+              Subjects
+            </button>
+            <button style={styles.homeNavAboutBtn} onClick={() => scrollTo(aboutRef)}>
+              About
+            </button>
+            <button
+              style={styles.homeNavCta}
+              onClick={() => (session ? onEnter() : scrollTo(cardRef))}
+            >
+              {session ? "Enter" : "Get started"}
+            </button>
           </div>
-          <nav style={styles.homeNavLinks}>
-            <div style={styles.homeNavCtaGroup}>
-              <button style={styles.homeNavAboutBtn} onClick={() => scrollTo(topRef)}>
-                Home
-              </button>
-              <button style={styles.homeNavAboutBtn} onClick={() => scrollTo(subjectsRef)}>
-                Subjects
-              </button>
-              <button style={styles.homeNavAboutBtn} onClick={() => scrollTo(aboutRef)}>
-                About
-              </button>
-              <button
-                style={styles.homeNavCta}
-                onClick={() => (session ? onEnter() : scrollTo(cardRef))}
-              >
-                {session ? "Enter" : "Get started"}
-              </button>
-            </div>
-          </nav>
-        </div>
+        </nav>
+      </div>
 
-        <div style={styles.hero}>
-          <div style={styles.heroText}>Welcome.</div>
-          <div style={styles.heroSub}>
-            A Punjab Board study companion for Grade 11 &amp; 12 — Biology, Chemistry, Physics,
-            Computer Science, Mathematics, English, Urdu, Islamic Studies, Pakistan Studies &amp;
-            Tarjumah-tul-Quran, all in one place.
+      <div style={styles.hero}>
+        <div style={styles.heroText}>Welcome.</div>
+        <div style={styles.heroSub}>
+          A Punjab Board study companion for Grade 11 &amp; 12 — Biology, Chemistry, Physics,
+          Computer Science, Mathematics, English, Urdu, Islamic Studies, Pakistan Studies &amp;
+          Tarjumah-tul-Quran, all in one place.
+        </div>
+      </div>
+
+      <BohoShapeStrip />
+
+      <div style={styles.featureRow}>
+        {FEATURES.map((f) => {
+          const Icon = f.icon;
+          return (
+            <button
+              key={f.title}
+              className="hoverable-card"
+              onClick={() => (session ? onEnter(f.target) : scrollTo(cardRef))}
+              style={{ ...styles.featureCard, textAlign: "left", cursor: "pointer", fontFamily: "inherit" }}
+            >
+              <div style={styles.featureIcon}><Icon size={18} color="#1B3B2F" /></div>
+              <div style={styles.featureTitle}>{f.title}</div>
+              <div style={styles.featureBody}>{f.body}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      <div style={styles.aboutSection} ref={aboutRef}>
+        <div style={styles.aboutInner}>
+          <div style={styles.aboutEyebrow}>About</div>
+          <div style={styles.aboutTitle}>Built for Punjab Board students, subject by subject.</div>
+          <div style={styles.aboutBody}>
+            Board Companion is a study space for Grade 11 &amp; 12 (Intermediate Part I &amp; II) students
+            following the Punjab Textbook Board syllabus. Pick a subject, ask questions in plain language,
+            generate revision notes or flashcards, and quiz yourself on high-yield topics — all matched to
+            board exam style. Every student's chats and quiz results are kept private to them, so this same
+            companion can be shared with classmates without mixing up progress.
           </div>
-        </div>
 
-        <BohoShapeStrip />
-
-        <div style={styles.featureRow}>
-          {FEATURES.map((f) => {
-            const Icon = f.icon;
-            return (
-              <button
-                key={f.title}
-                className="hoverable-card"
-                onClick={() => (session ? onEnter(f.target) : scrollTo(cardRef))}
-                style={{ ...styles.featureCard, textAlign: "left", cursor: "pointer", fontFamily: "inherit" }}
-              >
-                <div style={styles.featureIcon}><Icon size={18} color="#1B3B2F" /></div>
-                <div style={styles.featureTitle}>{f.title}</div>
-                <div style={styles.featureBody}>{f.body}</div>
-              </button>
-            );
-          })}
-        </div>
-
-        <div style={styles.aboutSection} ref={aboutRef}>
-          <div style={styles.aboutInner}>
-            <div style={styles.aboutEyebrow}>About</div>
-            <div style={styles.aboutTitle}>Built for Punjab Board students, subject by subject.</div>
-            <div style={styles.aboutBody}>
-              Board Companion is a study space for Grade 11 &amp; 12 (Intermediate Part I &amp; II) students
-              following the Punjab Textbook Board syllabus. Pick a subject, ask questions in plain language,
-              generate revision notes or flashcards, and quiz yourself on high-yield topics — all matched to
-              board exam style. Every student's chats and quiz results are kept private to them, so this same
-              companion can be shared with classmates without mixing up progress.
-            </div>
-
-            <div style={styles.aboutSubjectGrid} ref={subjectsRef}>
-              {SUBJECTS.map((s) => {
-                const Icon = s.icon;
-                return (
-                  <button
-                    key={s.id}
-                    className="hoverable-chip"
-                    onClick={() => (session ? onEnter("chat", s.id) : scrollTo(cardRef))}
-                    style={{ ...styles.aboutSubjectChip, cursor: "pointer", fontFamily: "inherit" }}
-                  >
-                    <Icon size={14} color="#1B3B2F" />
-                    <span>{s.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+          <div style={styles.aboutSubjectGrid} ref={subjectsRef}>
+            {SUBJECTS.map((s) => {
+              const Icon = s.icon;
+              return (
+                <button
+                  key={s.id}
+                  className="hoverable-chip"
+                  onClick={() => (session ? onEnter("chat", s.id) : scrollTo(cardRef))}
+                  style={{ ...styles.aboutSubjectChip, cursor: "pointer", fontFamily: "inherit" }}
+                >
+                  <Icon size={14} color="#1B3B2F" />
+                  <span>{s.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
-
-        <div ref={cardRef}>
-          {session ? (
-            <div style={styles.homeCard}>
-              <div style={styles.homeCardTitle}>Welcome back, {studentName || "there"}.</div>
-              <button style={styles.loginBtn} onClick={() => onEnter()}>
-                Continue to companion
-              </button>
-              <div style={styles.homeCardNote}>Your chats and progress are private to you.</div>
-            </div>
-          ) : (
-            <AuthScreen styles={styles} />
-          )}
-        </div>
       </div>
 
-      <div style={styles.homeFooter}>
-        <div style={styles.homeFooterDivider}>
-          <div style={styles.homeFooterLine} />
-          <div style={styles.homeFooterTagline}>Learn &bull; Practice &bull; Excel</div>
-          <div style={styles.homeFooterLine} />
-        </div>
-        <div style={styles.homeFooterBrand}>
-          <div style={styles.homeFooterLogo} />
-          <span style={{ fontWeight: 700, color: "#1B3B2F" }}>Board Companion</span>
-          <span style={styles.homeFooterSep}>|</span>
-          <span>Your studies. Our support.</span>
-        </div>
-      </div>
-
-      <div style={styles.bohoBottomFill}>
-        <BohoBottomFill />
+      <div ref={cardRef}>
+        {session ? (
+          <div style={styles.homeCard}>
+            <div style={styles.homeCardTitle}>Welcome back, {studentName || "there"}.</div>
+            <button style={styles.loginBtn} onClick={() => onEnter()}>
+              Continue to companion
+            </button>
+            <div style={styles.homeCardNote}>Your chats and progress are private to you.</div>
+          </div>
+        ) : (
+          <AuthScreen styles={styles} />
+        )}
       </div>
     </div>
   );
@@ -2028,38 +1865,8 @@ const styles = {
   /* Home / landing page */
   homePage: {
     background: "#F3FAF0", minHeight: "100vh", padding: "18px 28px 40px",
-    display: "flex", flexDirection: "column", position: "relative", zIndex: 0,
-  },
-  ropeLayerTop: {
-    position: "absolute", top: 0, left: 0, right: 0, height: 460,
-    overflow: "hidden", pointerEvents: "none", zIndex: -1,
-  },
-  ropeLayerBottom: {
-    position: "absolute", bottom: 0, left: 0, right: 0, height: 460,
-    overflow: "hidden", pointerEvents: "none", zIndex: -1,
-  },
-  pageFrame: {
-    background: "#F8FBF5", border: "1px solid #DCE8D5",
-    borderRadius: "clamp(48px, 20vw, 220px) clamp(48px, 20vw, 220px) 30px 30px",
-    maxWidth: 920, width: "100%", minWidth: 0, boxSizing: "border-box", margin: "0 auto",
-    padding: "40px clamp(20px, 6vw, 56px) 44px",
-    boxShadow: "inset 0 0 0 1px rgba(27,59,47,0.06), 0 24px 60px rgba(27,59,47,0.10)",
     display: "flex", flexDirection: "column",
   },
-  bohoBottomFill: { height: 90, overflow: "hidden", position: "relative", marginTop: 16, flexShrink: 0 },
-  homeFooter: { display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: "36px 24px 8px" },
-  homeFooterDivider: { display: "flex", alignItems: "center", gap: 16, width: "100%", maxWidth: 420, margin: "0 auto" },
-  homeFooterLine: { flex: 1, height: 1, background: "#C9DDC3" },
-  homeFooterTagline: {
-    fontSize: 10.5, letterSpacing: 3, textTransform: "uppercase", color: "#6B7A5D",
-    fontFamily: "Arial, sans-serif", whiteSpace: "nowrap",
-  },
-  homeFooterBrand: {
-    display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, color: "#4A5A2E",
-    fontFamily: "Arial, sans-serif",
-  },
-  homeFooterLogo: { width: 22, height: 22, borderRadius: "50%", background: "linear-gradient(135deg,#0F6B4F,#93A683)" },
-  homeFooterSep: { color: "#C9DDC3" },
   homeNav: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, minWidth: 0 },
   homeNavLinks: { display: "flex", alignItems: "center", gap: 22 },
   homeNavLink: {
