@@ -302,6 +302,30 @@ nav, chat bubbles). Flashcards and mind map are intentionally a **dark**
 contrasting panel (#2E3340 / #22242F) — a deliberate style choice, not an
 inconsistency to "fix."
 
+**Landing page corner decoration**: three small fixed-size (220x240px)
+photo crops — `public/hero-corner-tr.png`, `-bl.png`, `-br.png` — pinned to
+their respective corners of `styles.homePage` (`cornerPhotoBase`/`TR`/`BL`/
+`BR` in `App.jsx`), cropped from a botanical twisted-rope reference photo
+the student provided and background-removed (Pillow: flood-fill any pixel
+near the photo's own cream backdrop color to transparent, then blur the
+mask edge) so they blend into the app's green page background instead of
+showing as a hard-edged box. No top-left crop — that corner of the source
+photo has no rope in it, so there's nothing there by design, not a bug.
+
+This replaced an earlier single-image approach (one `hero-bg.png` set as
+`background-image` on `homePage` with `background-size: cover`) that kept
+breaking in new ways depending on viewport shape: `cover`'s crop window is
+a function of the *container's* aspect ratio, and this page's aspect ratio
+swings enormously — a wide/short desktop monitor vs. a long, narrow,
+content-driven column on mobile — so the same image showed different
+(sometimes empty) slices of itself depending on screen size, once even
+hiding the left-side rope entirely on a very wide monitor while showing
+the right side. A fixed-pixel box sidesteps the whole class of bug: its
+aspect ratio never changes, so there's nothing for it to crop differently.
+If this ever needs a fourth (top-left) accent or a different photo, re-run
+the same crop-then-transparency-cutout process rather than going back to
+a single cover-scaled background image.
+
 **Kept deliberately non-green**: the danger/error family (#C1594A wrong
 answers, delete-button red) — these are functional (right/wrong,
 delete-warning), not brand color, and making them green would remove a

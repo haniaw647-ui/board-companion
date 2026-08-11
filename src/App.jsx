@@ -442,6 +442,10 @@ function HomePage({ session, studentName, onEnter }) {
 
   return (
     <div style={styles.homePage} ref={topRef}>
+      <div style={{ ...styles.cornerPhotoBase, ...styles.cornerPhotoTR }} />
+      <div style={{ ...styles.cornerPhotoBase, ...styles.cornerPhotoBL }} />
+      <div style={{ ...styles.cornerPhotoBase, ...styles.cornerPhotoBR }} />
+
       <div style={styles.homeNav}>
         <div style={styles.headerLeft}>
           <div style={styles.crest} />
@@ -2000,11 +2004,23 @@ const styles = {
 
   /* Home / landing page */
   homePage: {
-    backgroundColor: "#F3FAF0", backgroundImage: "url(/hero-bg.png)", backgroundRepeat: "no-repeat",
-    backgroundSize: "cover", backgroundPosition: "center top",
-    minHeight: "100vh", padding: "18px 28px 40px",
-    display: "flex", flexDirection: "column",
+    backgroundColor: "#F3FAF0", minHeight: "100vh", padding: "18px 28px 40px",
+    display: "flex", flexDirection: "column", position: "relative", zIndex: 0,
   },
+  // Fixed-size corner photo crops rather than one big image stretched via
+  // background-size:cover — cover's crop window depends on the container's
+  // aspect ratio, which swings enormously on this page (very wide/short
+  // desktop monitor vs. a long, narrow, content-driven column), so a
+  // single cover mapping showed different (and sometimes empty) parts of
+  // the source photo depending on screen size. A fixed pixel box has the
+  // same aspect ratio always, so there's nothing left to crop unpredictably.
+  cornerPhotoBase: {
+    position: "absolute", width: 220, height: 240, backgroundSize: "cover",
+    backgroundRepeat: "no-repeat", pointerEvents: "none", zIndex: -1,
+  },
+  cornerPhotoTR: { top: 0, right: 0, backgroundImage: "url(/hero-corner-tr.png)", backgroundPosition: "top right" },
+  cornerPhotoBL: { bottom: 0, left: 0, backgroundImage: "url(/hero-corner-bl.png)", backgroundPosition: "bottom left" },
+  cornerPhotoBR: { bottom: 0, right: 0, backgroundImage: "url(/hero-corner-br.png)", backgroundPosition: "bottom right" },
   homeNav: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, minWidth: 0 },
   homeNavLinks: { display: "flex", alignItems: "center", gap: 22 },
   homeNavLink: {
