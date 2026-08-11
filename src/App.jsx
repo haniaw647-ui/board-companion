@@ -1864,7 +1864,9 @@ const styles = {
 
   /* Home / landing page */
   homePage: {
-    background: "#F3FAF0", minHeight: "100vh", padding: "18px 28px 40px",
+    backgroundColor: "#F3FAF0", backgroundImage: "url(/hero-bg.png)", backgroundRepeat: "no-repeat",
+    backgroundSize: "cover", backgroundPosition: "center top",
+    minHeight: "100vh", padding: "18px 28px 40px",
     display: "flex", flexDirection: "column",
   },
   homeNav: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, minWidth: 0 },
