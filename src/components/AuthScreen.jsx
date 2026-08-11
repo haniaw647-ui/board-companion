@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, User, Mail, Lock, KeyRound } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
 import { joinClassByCode } from "../lib/db";
 
@@ -66,40 +66,52 @@ export default function AuthScreen({ styles }) {
       </div>
 
       {mode === "signup" && (
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Your name"
-          style={styles.homeInput}
-          autoComplete="name"
-        />
+        <div style={styles.homeInputWrapper}>
+          <User size={15} style={styles.homeInputIcon} />
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Your name"
+            style={styles.homeInput}
+            autoComplete="name"
+          />
+        </div>
       )}
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        placeholder="Email"
-        style={styles.homeInput}
-        autoComplete="email"
-      />
-      <input
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        placeholder="Password"
-        style={styles.homeInput}
-        autoComplete={mode === "signup" ? "new-password" : "current-password"}
-      />
+      <div style={styles.homeInputWrapper}>
+        <Mail size={15} style={styles.homeInputIcon} />
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email"
+          style={styles.homeInput}
+          autoComplete="email"
+        />
+      </div>
+      <div style={styles.homeInputWrapper}>
+        <Lock size={15} style={styles.homeInputIcon} />
+        <input
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Password"
+          style={styles.homeInput}
+          autoComplete={mode === "signup" ? "new-password" : "current-password"}
+        />
+      </div>
 
       {mode === "signup" && (
         <>
-          <input
-            value={classCode}
-            onChange={(e) => setClassCode(e.target.value)}
-            placeholder="Class code (optional)"
-            style={styles.homeInput}
-            autoComplete="off"
-          />
+          <div style={styles.homeInputWrapper}>
+            <KeyRound size={15} style={styles.homeInputIcon} />
+            <input
+              value={classCode}
+              onChange={(e) => setClassCode(e.target.value)}
+              placeholder="Class code (optional)"
+              style={styles.homeInput}
+              autoComplete="off"
+            />
+          </div>
           <div style={styles.homeCardNote}>Got a class code from your teacher? Enter it above — otherwise leave it blank.</div>
         </>
       )}

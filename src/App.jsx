@@ -657,6 +657,20 @@ function HomePage({ session, studentName, onEnter }) {
         </div>
       </div>
 
+      <div style={styles.homeFooter}>
+        <div style={styles.homeFooterDivider}>
+          <div style={styles.homeFooterLine} />
+          <div style={styles.homeFooterTagline}>Learn &bull; Practice &bull; Excel</div>
+          <div style={styles.homeFooterLine} />
+        </div>
+        <div style={styles.homeFooterBrand}>
+          <div style={styles.homeFooterLogo} />
+          <span style={{ fontWeight: 700, color: "#1B3B2F" }}>Board Companion</span>
+          <span style={styles.homeFooterSep}>|</span>
+          <span>Your studies. Our support.</span>
+        </div>
+      </div>
+
       <div style={styles.bohoBottomFill}>
         <BohoBottomFill />
       </div>
@@ -1990,32 +2004,50 @@ const styles = {
   },
   ropeLayer: { position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: -1 },
   pageFrame: {
-    background: "#F8FBF5", border: "1px solid #DCE8D5", borderRadius: "220px 220px 30px 30px",
-    maxWidth: 920, width: "100%", margin: "0 auto", padding: "40px 56px 44px",
-    boxShadow: "0 24px 60px rgba(27,59,47,0.10)", display: "flex", flexDirection: "column",
+    background: "#F8FBF5", border: "1px solid #DCE8D5",
+    borderRadius: "clamp(48px, 20vw, 220px) clamp(48px, 20vw, 220px) 30px 30px",
+    maxWidth: 920, width: "100%", minWidth: 0, boxSizing: "border-box", margin: "0 auto",
+    padding: "40px clamp(20px, 6vw, 56px) 44px",
+    boxShadow: "inset 0 0 0 1px rgba(27,59,47,0.06), 0 24px 60px rgba(27,59,47,0.10)",
+    display: "flex", flexDirection: "column",
   },
   bohoBottomFill: { height: 90, overflow: "hidden", position: "relative", marginTop: 16, flexShrink: 0 },
-  homeNav: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 },
+  homeFooter: { display: "flex", flexDirection: "column", alignItems: "center", gap: 14, padding: "36px 24px 8px" },
+  homeFooterDivider: { display: "flex", alignItems: "center", gap: 16, width: "100%", maxWidth: 420, margin: "0 auto" },
+  homeFooterLine: { flex: 1, height: 1, background: "#C9DDC3" },
+  homeFooterTagline: {
+    fontSize: 10.5, letterSpacing: 3, textTransform: "uppercase", color: "#6B7A5D",
+    fontFamily: "Arial, sans-serif", whiteSpace: "nowrap",
+  },
+  homeFooterBrand: {
+    display: "flex", alignItems: "center", gap: 10, fontSize: 12.5, color: "#4A5A2E",
+    fontFamily: "Arial, sans-serif",
+  },
+  homeFooterLogo: { width: 22, height: 22, borderRadius: "50%", background: "linear-gradient(135deg,#0F6B4F,#93A683)" },
+  homeFooterSep: { color: "#C9DDC3" },
+  homeNav: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, minWidth: 0 },
   homeNavLinks: { display: "flex", alignItems: "center", gap: 22 },
   homeNavLink: {
     fontSize: 12.5, color: "#6B7A5D", fontFamily: "Arial, sans-serif", letterSpacing: 0.5,
     textTransform: "uppercase", cursor: "pointer",
   },
-  homeNavCtaGroup: { display: "flex", alignItems: "center", gap: 8 },
+  homeNavCtaGroup: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" },
   homeNavAboutBtn: {
     background: "transparent", color: "#1B3B2F", border: "1px solid #C9DDC3", borderRadius: 999,
     padding: "8px 18px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "Arial, sans-serif",
+    whiteSpace: "nowrap",
   },
   homeNavCta: {
     background: "#B6CC8E", color: "#2F3D30", border: "none", borderRadius: 999,
     padding: "8px 18px", fontSize: 12.5, fontWeight: 700, cursor: "pointer", fontFamily: "Arial, sans-serif",
+    whiteSpace: "nowrap",
   },
   featureRow: {
-    display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(200px, 100%), 1fr))",
-    gap: 16, maxWidth: 820, margin: "8px auto 32px", minWidth: 0,
+    display: "flex", flexWrap: "wrap", gap: 16, maxWidth: 820, margin: "8px auto 32px", minWidth: 0,
   },
   featureCard: {
     background: "#FBFDFA", border: "1px solid #C9DDC3", borderRadius: 18, padding: "18px 18px 20px",
+    flex: "1 1 200px", minWidth: 0, boxSizing: "border-box",
   },
   featureIcon: {
     width: 34, height: 34, borderRadius: "50%", background: "#D9F0E4",
@@ -2053,9 +2085,11 @@ const styles = {
   },
   homeCardTitle: { fontSize: 16, fontWeight: 400, color: "#1B3B2F", fontFamily: "'Georgia', serif", textAlign: "center" },
   homeInput: {
-    padding: "12px 16px", borderRadius: 999, border: "1px solid #C9DDC3",
-    fontSize: 13, fontFamily: "Arial, sans-serif", background: "#fff", textAlign: "center",
+    width: "100%", padding: "12px 16px 12px 42px", borderRadius: 999, border: "1px solid #C9DDC3",
+    fontSize: 13, fontFamily: "Arial, sans-serif", background: "#fff", textAlign: "left", boxSizing: "border-box",
   },
+  homeInputWrapper: { position: "relative", display: "flex", alignItems: "center" },
+  homeInputIcon: { position: "absolute", left: 16, color: "#93A683", pointerEvents: "none" },
   loginBtn: {
     background: "#0F6B4F", color: "#FBFDFA", border: "none", borderRadius: 999,
     padding: "12px 16px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "Arial, sans-serif",
