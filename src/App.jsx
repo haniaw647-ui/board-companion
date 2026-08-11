@@ -433,6 +433,20 @@ const FEATURES = [
   { title: "Progress report", body: "A subject-by-subject mastery pie chart, saved privately to you.", icon: ClipboardList, target: "progress" },
 ];
 
+// hero-bg.png is 1024x1536 (portrait, aspect ~0.667). background-size:cover
+// scales it up until it fills the container in both dimensions, cropping
+// whichever axis has "extra" — on a container that's landscape (wider than
+// tall), covering the height requires scaling the image up so much that its
+// width blows past the container and gets cropped from both sides, which is
+// exactly where the rope artwork sits. There's no single background-size
+// value that both fills a variable-shape container edge-to-edge AND never
+// crops a fixed-shape image — so this measures the container's actual
+// rendered aspect ratio and only falls back to "contain" (never crops, but
+// can letterbox) on the landscape screens where "cover" would otherwise eat
+// the ropes; everything closer to the image's own portrait shape keeps the
+// full-bleed "cover" look.
+const HERO_BG_ASPECT = 1024 / 1536;
+
 function HomePage({ session, studentName, onEnter }) {
   const topRef = useRef(null);
   const subjectsRef = useRef(null);
@@ -440,8 +454,31 @@ function HomePage({ session, studentName, onEnter }) {
   const cardRef = useRef(null);
   const scrollTo = (ref) => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
+  const [bgSize, setBgSize] = useState("cover");
+  useEffect(() => {
+    const el = topRef.current;
+    if (!el) return;
+    const recompute = () => {
+      const { width, height } = el.getBoundingClientRect();
+      if (!width || !height) return;
+      const containerAspect = width / height;
+      // once the container is noticeably more landscape than the image's
+      // own portrait shape, cover's crop becomes severe enough to lose the
+      // side ropes entirely — switch to contain rather than let that happen
+      setBgSize(containerAspect > HERO_BG_ASPECT * 1.35 ? "contain" : "cover");
+    };
+    recompute();
+    const ro = new ResizeObserver(recompute);
+    ro.observe(el);
+    window.addEventListener("resize", recompute);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", recompute);
+    };
+  }, []);
+
   return (
-    <div style={styles.homePage} ref={topRef}>
+    <div style={{ ...styles.homePage, backgroundSize: bgSize }} ref={topRef}>
       <div style={styles.homeNav}>
         <div style={styles.headerLeft}>
           <div style={styles.crest} />
