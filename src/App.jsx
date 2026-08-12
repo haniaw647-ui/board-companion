@@ -449,13 +449,11 @@ const HERO_BG_ASPECT = 1024 / 1536;
 
 function HomePage({ session, studentName, onEnter }) {
   const topRef = useRef(null);
-  const bgFrameRef = useRef(null);
   const subjectsRef = useRef(null);
   const aboutRef = useRef(null);
   const cardRef = useRef(null);
   const scrollTo = (ref) => ref.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
-  const [bgSize, setBgSize] = useState("cover");
   // Width of the empty side margin beside the centered content column, and
   // how visible the doodle is within it. On desktop (generous margin) the
   // doodle spreads to fill most of that space at a soft opacity; on mobile
@@ -468,24 +466,10 @@ function HomePage({ session, studentName, onEnter }) {
   const [doodleOpacity, setDoodleOpacity] = useState(0.5);
   useEffect(() => {
     const el = topRef.current;
-    const bgEl = bgFrameRef.current;
-    if (!el || !bgEl) return;
+    if (!el) return;
     const recompute = () => {
-      const { width, height } = el.getBoundingClientRect();
-      if (!width || !height) return;
-
-      // botanical background now lives on contentFrame (the same ~1200px
-      // column as the nav/cards/about), not the full-width page, so this
-      // measures THAT box's own aspect ratio rather than the whole viewport
-      // — still falls back to "contain" on the rare short-content-on-a-
-      // wide-screen case where cover would otherwise crop the ropes, but
-      // the narrower column makes that far less likely to trigger than
-      // when this was measuring the full page width.
-      const bgRect = bgEl.getBoundingClientRect();
-      if (bgRect.width && bgRect.height) {
-        const containerAspect = bgRect.width / bgRect.height;
-        setBgSize(containerAspect > HERO_BG_ASPECT * 1.35 ? "contain" : "cover");
-      }
+      const { width } = el.getBoundingClientRect();
+      if (!width) return;
 
       // widest content column caps at 1200px (homeNav/featureRow/aboutInner
       // in the styles object) — mirrored here so the doodle's available
@@ -505,7 +489,6 @@ function HomePage({ session, studentName, onEnter }) {
     recompute();
     const ro = new ResizeObserver(recompute);
     ro.observe(el);
-    ro.observe(bgEl);
     window.addEventListener("resize", recompute);
     return () => {
       ro.disconnect();
@@ -522,7 +505,7 @@ function HomePage({ session, studentName, onEnter }) {
         </>
       )}
 
-      <div style={{ ...styles.contentFrame, backgroundSize: bgSize }} ref={bgFrameRef}>
+      <div style={styles.contentFrame}>
       <div style={styles.homeNav}>
         <div style={styles.headerLeft}>
           <div style={styles.crest} />
@@ -2094,6 +2077,7 @@ const styles = {
   // never spill past this box even at extreme aspect ratios.
   contentFrame: {
     backgroundImage: "url(/hero-bg.png)", backgroundRepeat: "no-repeat", backgroundPosition: "center top",
+    backgroundSize: "cover",
     maxWidth: 1200, width: "100%", margin: "0 auto", position: "relative", overflow: "hidden",
     display: "flex", flexDirection: "column",
   },
