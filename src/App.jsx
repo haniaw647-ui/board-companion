@@ -57,7 +57,7 @@ const QUICK_ACTIONS = [
   { id: "quiz", label: "Quiz me", icon: ListChecks, type: "quiz" },
 ];
 
-const MODEL = "claude-sonnet-4-6";
+const MODEL = "claude-sonnet-5";
 
 /* ---------- Real Grade 11 syllabus: chapter/topic titles only, from the
    official PECTAA textbook table of contents. No book prose is stored or
