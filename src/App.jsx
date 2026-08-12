@@ -477,12 +477,12 @@ function HomePage({ session, studentName, onEnter }) {
       // side ropes entirely — switch to contain rather than let that happen
       setBgSize(containerAspect > HERO_BG_ASPECT * 1.35 ? "contain" : "cover");
 
-      // widest content column is clamp(560px, 76vw, 1200px) — mirrored here
-      // in JS (featureRow/aboutInner in the styles object) so the doodle's
-      // available margin always matches the content's actual rendered
-      // width instead of a stale fixed number. Never narrows the content,
-      // only ever occupies space already outside that column.
-      const contentWidth = Math.min(1200, Math.max(560, width * 0.76));
+      // widest content column caps at 1200px (homeNav/featureRow/aboutInner
+      // in the styles object) — mirrored here so the doodle's available
+      // margin always matches the content's actual rendered width instead
+      // of a stale number. Never narrows the content, only ever occupies
+      // space already outside that column.
+      const contentWidth = Math.min(1200, width);
       const margin = (width - contentWidth) / 2;
       if (margin > 60) {
         setDoodleWidth(Math.min(460, margin - 24));
@@ -2085,7 +2085,10 @@ const styles = {
     backgroundRepeat: "repeat", backgroundPosition: "top left",
     pointerEvents: "none", zIndex: -1,
   },
-  homeNav: { display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12, minWidth: 0 },
+  homeNav: {
+    display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12,
+    minWidth: 0, maxWidth: 1200, width: "100%", margin: "0 auto",
+  },
   homeNavLinks: { display: "flex", alignItems: "center", gap: 22 },
   homeNavLink: {
     fontSize: 12.5, color: "#6B7A5D", fontFamily: "Arial, sans-serif", letterSpacing: 0.5,
@@ -2103,7 +2106,7 @@ const styles = {
     whiteSpace: "nowrap",
   },
   featureRow: {
-    display: "flex", flexWrap: "wrap", gap: 16, maxWidth: "clamp(560px, 76vw, 1200px)",
+    display: "flex", flexWrap: "wrap", gap: 16, maxWidth: 1200,
     margin: "8px auto 32px", minWidth: 0,
   },
   featureCard: {
@@ -2119,7 +2122,7 @@ const styles = {
 
   aboutSection: { padding: "10px 0 36px" },
   aboutInner: {
-    maxWidth: "clamp(560px, 76vw, 1200px)", margin: "0 auto", background: "#FBFDFA", border: "1px solid #C9DDC3",
+    maxWidth: 1200, margin: "0 auto", background: "#FBFDFA", border: "1px solid #C9DDC3",
     borderRadius: 22, padding: "30px 34px",
   },
   aboutEyebrow: {
