@@ -449,6 +449,7 @@ const HERO_BG_ASPECT = 1024 / 1536;
 
 function HomePage({ session, studentName, onEnter }) {
   const topRef = useRef(null);
+  const bgFrameRef = useRef(null);
   const subjectsRef = useRef(null);
   const aboutRef = useRef(null);
   const cardRef = useRef(null);
@@ -467,15 +468,24 @@ function HomePage({ session, studentName, onEnter }) {
   const [doodleOpacity, setDoodleOpacity] = useState(0.5);
   useEffect(() => {
     const el = topRef.current;
-    if (!el) return;
+    const bgEl = bgFrameRef.current;
+    if (!el || !bgEl) return;
     const recompute = () => {
       const { width, height } = el.getBoundingClientRect();
       if (!width || !height) return;
-      const containerAspect = width / height;
-      // once the container is noticeably more landscape than the image's
-      // own portrait shape, cover's crop becomes severe enough to lose the
-      // side ropes entirely — switch to contain rather than let that happen
-      setBgSize(containerAspect > HERO_BG_ASPECT * 1.35 ? "contain" : "cover");
+
+      // botanical background now lives on contentFrame (the same ~1200px
+      // column as the nav/cards/about), not the full-width page, so this
+      // measures THAT box's own aspect ratio rather than the whole viewport
+      // — still falls back to "contain" on the rare short-content-on-a-
+      // wide-screen case where cover would otherwise crop the ropes, but
+      // the narrower column makes that far less likely to trigger than
+      // when this was measuring the full page width.
+      const bgRect = bgEl.getBoundingClientRect();
+      if (bgRect.width && bgRect.height) {
+        const containerAspect = bgRect.width / bgRect.height;
+        setBgSize(containerAspect > HERO_BG_ASPECT * 1.35 ? "contain" : "cover");
+      }
 
       // widest content column caps at 1200px (homeNav/featureRow/aboutInner
       // in the styles object) — mirrored here so the doodle's available
@@ -495,6 +505,7 @@ function HomePage({ session, studentName, onEnter }) {
     recompute();
     const ro = new ResizeObserver(recompute);
     ro.observe(el);
+    ro.observe(bgEl);
     window.addEventListener("resize", recompute);
     return () => {
       ro.disconnect();
@@ -503,7 +514,7 @@ function HomePage({ session, studentName, onEnter }) {
   }, []);
 
   return (
-    <div style={{ ...styles.homePage, backgroundSize: bgSize }} ref={topRef}>
+    <div style={styles.homePage} ref={topRef}>
       {doodleWidth > 0 && (
         <>
           <div style={{ ...styles.doodleStrip, left: 0, width: doodleWidth, opacity: doodleOpacity, backgroundSize: `${Math.min(doodleWidth, 230)}px auto` }} />
@@ -511,6 +522,7 @@ function HomePage({ session, studentName, onEnter }) {
         </>
       )}
 
+      <div style={{ ...styles.contentFrame, backgroundSize: bgSize }} ref={bgFrameRef}>
       <div style={styles.homeNav}>
         <div style={styles.headerLeft}>
           <div style={styles.crest} />
@@ -609,6 +621,7 @@ function HomePage({ session, studentName, onEnter }) {
         ) : (
           <AuthScreen styles={styles} />
         )}
+      </div>
       </div>
     </div>
   );
@@ -2069,10 +2082,20 @@ const styles = {
 
   /* Home / landing page */
   homePage: {
-    backgroundColor: "#F3FAF0", backgroundImage: "url(/hero-bg.png)", backgroundRepeat: "no-repeat",
-    backgroundSize: "cover", backgroundPosition: "center top",
+    backgroundColor: "#F3FAF0",
     width: "100%", boxSizing: "border-box", minHeight: "100vh", padding: "18px 28px 40px",
     display: "flex", flexDirection: "column", position: "relative", zIndex: 0,
+  },
+  // The botanical background lives here, not on homePage — this box is the
+  // same ~1200px column as homeNav/featureRow/aboutInner (the "red
+  // rectangle"), so the image has a hard boundary at the content edges
+  // instead of bleeding into the doodle margins on either side.
+  // overflow:hidden guarantees backgroundSize:cover's scaled image can
+  // never spill past this box even at extreme aspect ratios.
+  contentFrame: {
+    backgroundImage: "url(/hero-bg.png)", backgroundRepeat: "no-repeat", backgroundPosition: "center top",
+    maxWidth: 1200, width: "100%", margin: "0 auto", position: "relative", overflow: "hidden",
+    display: "flex", flexDirection: "column",
   },
   // Medical-doodle side strips — only rendered when there's real empty
   // margin beside the centered content column (see doodleWidth in
