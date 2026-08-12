@@ -456,16 +456,6 @@ function HomePage({ session, studentName, onEnter }) {
 
   return (
     <div style={styles.homePage} ref={topRef}>
-      {/* Single fixed full-viewport layer, not measured/sized against the
-          content column at all — position:fixed anchors to the viewport
-          itself (100vw x 100vh) regardless of how tall the page's content
-          makes homePage, so the pattern always reaches every edge with no
-          leftover blank margin. Content painting on top of it (normal DOM
-          order + this being the lowest z-index in homePage's stacking
-          context) is what keeps it "behind everything" — nothing here
-          depends on measuring where the content column ends. */}
-      <div style={styles.doodleLayer} />
-
       <div style={styles.contentFrame}>
       <div style={styles.homeNav}>
         <div style={styles.headerLeft}>
@@ -2025,37 +2015,26 @@ const styles = {
   tableAttempts: { fontSize: 10.5, color: "#93A683", fontFamily: "Arial, sans-serif" },
 
   /* Home / landing page */
+  // The botanical background lives here, not on contentFrame — contentFrame
+  // is a flex column sized only as tall as its own children (nav through
+  // the login card), so a background placed there stops dead at the last
+  // piece of real content and leaves whatever's below it (down to the
+  // viewport's full height) showing through instead. homePage always spans
+  // at least 100vh (minHeight below) regardless of how tall its content is,
+  // so putting the background here is what makes it continue under the
+  // empty space rather than stopping at the content boundary.
   homePage: {
-    backgroundColor: "#F3FAF0",
+    backgroundColor: "#F3FAF0", backgroundImage: "url(/hero-bg.png)", backgroundRepeat: "no-repeat",
+    backgroundPosition: "center top", backgroundSize: "cover",
     width: "100%", boxSizing: "border-box", minHeight: "100vh", padding: "18px 28px 40px",
     display: "flex", flexDirection: "column", position: "relative", zIndex: 0,
   },
-  // The botanical background lives here, not on homePage — this box is the
-  // same ~1200px column as homeNav/featureRow/aboutInner (the "red
-  // rectangle"), so the image has a hard boundary at the content edges
-  // instead of bleeding into the doodle margins on either side.
-  // overflow:hidden guarantees backgroundSize:cover's scaled image can
-  // never spill past this box even at extreme aspect ratios.
+  // Plain layout wrapper only (no background of its own) — keeps the
+  // nav/cards/about aligned to a shared ~1200px column, matching homePage's
+  // own background image behind it.
   contentFrame: {
-    backgroundImage: "url(/hero-bg.png)", backgroundRepeat: "no-repeat", backgroundPosition: "center top",
-    backgroundSize: "cover",
-    maxWidth: 1200, width: "100%", margin: "0 auto", position: "relative", overflow: "hidden",
+    maxWidth: 1200, width: "100%", margin: "0 auto",
     display: "flex", flexDirection: "column",
-  },
-  // Single full-viewport doodle layer, fixed to the browser window (not
-  // scoped/sized to homePage's own content-driven height like an absolute
-  // layer would be) so it always reaches all four edges regardless of how
-  // tall the page ends up. Negative z-index + homePage's own zIndex:0
-  // (below) keeps it behind every piece of real content without needing
-  // an explicit z-index on each content element — content is opaque, so
-  // the doodle only ever actually shows through in genuinely empty page
-  // area, never over cards/text/buttons even though this layer technically
-  // extends underneath them too.
-  doodleLayer: {
-    position: "fixed", inset: 0, width: "100vw", height: "100vh",
-    backgroundImage: "url(/medical-doodle.png)", backgroundRepeat: "repeat",
-    backgroundSize: "220px auto", backgroundPosition: "top left",
-    opacity: 0.35, pointerEvents: "none", zIndex: -1,
   },
   homeNav: {
     display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12,
