@@ -213,3 +213,35 @@ alter table public.chat_history enable row level security;
 -- only the owning student, ever — do not add a teacher policy here
 create policy "chat_history_all_own" on public.chat_history
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ========== saved_items ==========
+-- Anything a student explicitly chooses to keep via a Save button — notes,
+-- flashcard decks, mind maps, or a quiz (to retake later) — separate from
+-- the ephemeral notesData/flashcardsData/mindmapData/quiz state shown right
+-- after generating, which is lost on navigating away. `data` holds
+-- whatever shape that item type needs (notes: {sections}, flashcards:
+-- {cards}, mindmap: {branches}, quiz: {questions}) since the four types
+-- don't share a schema — a student can save several of each per subject,
+-- so this is one row per save, not one row per subject like chat_history.
+-- The "Saved" tab (see SavedItemsView in App.jsx) queries this table
+-- across every subject/grade at once to give a single browse-everything
+-- view; the per-subject notebook-page notes list queries it scoped to the
+-- current subject/grade. Same ownership-only RLS pattern as chat_history:
+-- personal study content, no teacher-read policy.
+create table public.saved_items (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  grade smallint not null check (grade in (11, 12)),
+  subject_id text not null,
+  type text not null check (type in ('notes', 'flashcards', 'mindmap', 'quiz')),
+  title text not null,
+  data jsonb not null,
+  created_at timestamptz not null default now()
+);
+
+create index saved_items_user_grade_subject_idx on public.saved_items (user_id, grade, subject_id);
+
+alter table public.saved_items enable row level security;
+
+create policy "saved_items_all_own" on public.saved_items
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

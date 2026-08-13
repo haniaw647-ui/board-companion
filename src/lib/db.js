@@ -108,6 +108,49 @@ export async function clearChatHistory(userId, grade, subjectId) {
   return saveChatHistory(userId, grade, subjectId, []);
 }
 
+/* ---------- saved items (notes, flashcards, mind maps, quizzes) ----------
+   A student can save several items of each type per subject (one row per
+   save), unlike chat_history's single row per subject — see schema.sql.
+   getSavedItems scopes to one subject/grade (the per-subject notes list);
+   getAllSavedItems spans every subject/grade (the "Saved" tab). */
+
+export async function getSavedItems(userId, grade, subjectId) {
+  const { data, error } = await supabase
+    .from("saved_items")
+    .select("id, type, title, data, created_at")
+    .eq("user_id", userId)
+    .eq("grade", grade)
+    .eq("subject_id", subjectId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function getAllSavedItems(userId) {
+  const { data, error } = await supabase
+    .from("saved_items")
+    .select("id, grade, subject_id, type, title, data, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function saveItem(userId, grade, subjectId, type, { title, data }) {
+  const { data: row, error } = await supabase
+    .from("saved_items")
+    .insert({ user_id: userId, grade, subject_id: subjectId, type, title, data })
+    .select("id, type, title, data, created_at")
+    .single();
+  if (error) throw error;
+  return row;
+}
+
+export async function deleteSavedItem(id) {
+  const { error } = await supabase.from("saved_items").delete().eq("id", id);
+  if (error) throw error;
+}
+
 /* ---------- classes ---------- */
 
 const JOIN_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O or 1/I mixups

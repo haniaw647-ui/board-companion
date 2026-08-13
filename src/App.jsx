@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Send, Sparkles, ClipboardList, Layers, ListChecks, RotateCcw,
   GraduationCap, ChevronDown, Loader2, Trash2, GitBranch, RefreshCw, X, Flame, Timer, Printer,
+  ArrowLeft, Maximize2, Minimize2, Bookmark, BookmarkCheck,
 } from "lucide-react";
 import { supabase } from "./lib/supabaseClient";
 import * as db from "./lib/db";
@@ -58,6 +59,9 @@ const QUICK_ACTIONS = [
 ];
 
 const MODEL = "claude-sonnet-5";
+
+const ITEM_TYPE_LABEL = { notes: "Note", flashcards: "Flashcards", mindmap: "Mind map", quiz: "Quiz" };
+const ITEM_TYPE_ICON = { notes: ClipboardList, flashcards: Layers, mindmap: GitBranch, quiz: ListChecks };
 
 /* ---------- Real Grade 11 syllabus: chapter/topic titles only, from the
    official PECTAA textbook table of contents. No book prose is stored or
@@ -302,7 +306,7 @@ async function askClaude(systemPrompt, userText) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 1000,
+      max_tokens: 4000,
       system: systemPrompt,
       messages: [{ role: "user", content: userText }],
     }),
@@ -583,7 +587,7 @@ export default function BoardCompanion() {
   const [showImportPrompt, setShowImportPrompt] = useState(false);
   const [importBusy, setImportBusy] = useState(false);
   const studentName = profile?.name || "";
-  const [tab, setTab] = useState("study"); // study | progress
+  const [tab, setTab] = useState("study"); // study | progress | saved
   const [showSyllabus, setShowSyllabus] = useState(false);
   const [showDeleteMenu, setShowDeleteMenu] = useState(false);
   const [deleteSelection, setDeleteSelection] = useState({ chat: false, activity: false, progress: false });
@@ -604,8 +608,13 @@ export default function BoardCompanion() {
   const [notesData, setNotesData] = useState(null); // {title, sections:[{heading,points}]}
   const [flashcardsData, setFlashcardsData] = useState(null); // {topic, cards:[{front,back}]}
   const [mindmapData, setMindmapData] = useState(null); // {topic, branches:[{label,children}]}
+  const [savedItems, setSavedItems] = useState([]); // this subject/grade's saved items: [{id, type, title, data, created_at}]
+  const [allSavedItems, setAllSavedItems] = useState([]); // every subject/grade, for the Saved tab
+  const [itemSaveStatus, setItemSaveStatus] = useState(null); // 'saving' | 'saved' | null (transient)
+  const [pendingItemDelete, setPendingItemDelete] = useState(null); // {item, timerId} | null, for the undo toast
   const scrollRef = useRef(null);
   const pendingPrefillRef = useRef(null); // topic to prefill after a subject switch triggered by "Practice this"
+  const pendingOpenItemRef = useRef(null); // saved item to open after a subject/grade switch triggered by the Saved tab
 
   const subject = SUBJECTS.find((s) => s.id === subjectId);
 
@@ -639,7 +648,13 @@ export default function BoardCompanion() {
       setInitLoaded(true);
       if (db.hasLocalDataToImport()) setShowImportPrompt(true);
     })();
-  }, [session]);
+    // keyed on the user id, not the session object — Supabase issues a new
+    // session object (same user) on every token refresh and on tab-focus
+    // revalidation, and depending on the whole object here would re-run
+    // this effect (and the one below) far more often than the user
+    // actually changes, needlessly re-fetching and resetting in-progress
+    // UI state like open notes or an undo window
+  }, [session?.user?.id]);
 
   /* class leaderboard: only fetchable once we know our own class_id (a
      student who hasn't entered a class code has none, and gets no
@@ -660,8 +675,21 @@ export default function BoardCompanion() {
   useEffect(() => {
     if (!initLoaded || !session) return;
     (async () => {
-      const saved = await db.getChatHistory(session.user.id, grade, subjectId);
+      // switching subject/grade closes any open undo window instead of
+      // letting it silently keep counting down in the background — commit
+      // the delete right away so the saved-items list you see always
+      // matches the database
+      if (pendingItemDelete) {
+        clearTimeout(pendingItemDelete.timerId);
+        db.deleteSavedItem(pendingItemDelete.item.id).catch(() => {});
+        setPendingItemDelete(null);
+      }
+      const [saved, items] = await Promise.all([
+        db.getChatHistory(session.user.id, grade, subjectId),
+        db.getSavedItems(session.user.id, grade, subjectId),
+      ]);
       setMessages(saved);
+      setSavedItems(items);
       setQuiz(null);
       setQuizResult(null);
       setQuizAnswers({});
@@ -671,7 +699,13 @@ export default function BoardCompanion() {
       setNotesData(null);
       setFlashcardsData(null);
       setMindmapData(null);
-      if (pendingPrefillRef.current) {
+      if (pendingOpenItemRef.current) {
+        const item = pendingOpenItemRef.current;
+        pendingOpenItemRef.current = null;
+        setPendingAction(null);
+        setTopicDraft("");
+        applyOpenedItem(item);
+      } else if (pendingPrefillRef.current) {
         setTab("study");
         setPendingAction("quiz");
         setTopicDraft(pendingPrefillRef.current);
@@ -681,7 +715,14 @@ export default function BoardCompanion() {
         setTopicDraft("");
       }
     })();
-  }, [grade, subjectId, initLoaded, session]);
+  }, [grade, subjectId, initLoaded, session?.user?.id]);
+
+  /* the Saved tab spans every subject/grade, so it loads on demand rather
+     than piggybacking on the per-subject effect above */
+  useEffect(() => {
+    if (tab !== "saved" || !session) return;
+    db.getAllSavedItems(session.user.id).then(setAllSavedItems).catch(() => {});
+  }, [tab, session?.user?.id]);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -779,6 +820,31 @@ export default function BoardCompanion() {
     setPendingAction(null); setTopicDraft("");
   }
 
+  // Shared by the subject-switch effect (opening a saved item from a
+  // different subject/grade) and openSavedItem below (same subject/grade,
+  // where changing grade/subjectId to their current values wouldn't
+  // actually trigger that effect, since React bails out of re-running an
+  // effect whose dependencies didn't change).
+  function applyOpenedItem(item) {
+    if (item.type === "notes") setNotesData({ title: item.title, sections: item.data.sections, id: item.id });
+    else if (item.type === "flashcards") setFlashcardsData({ topic: item.title, cards: item.data.cards, id: item.id });
+    else if (item.type === "mindmap") setMindmapData({ topic: item.title, branches: item.data.branches, id: item.id });
+    else if (item.type === "quiz") { setQuiz({ topic: item.title, questions: item.data.questions, id: item.id }); setQuizAnswers({}); setQuizResult(null); }
+  }
+
+  function openSavedItem(item) {
+    if (item.grade === grade && item.subject_id === subjectId) {
+      clearActivities();
+      applyOpenedItem(item);
+      setTab("study");
+    } else {
+      pendingOpenItemRef.current = item;
+      setGrade(item.grade);
+      setSubjectId(item.subject_id);
+      setTab("study");
+    }
+  }
+
   async function generateNotes(topic) {
     setLoading(true);
     clearActivities();
@@ -791,6 +857,104 @@ export default function BoardCompanion() {
     } finally {
       setLoading(false);
     }
+  }
+
+  // Shared by all four "Save" buttons (notes/flashcards/mindmap/quiz) —
+  // only the type tag and which piece of data goes in `data` differ.
+  async function persistItem(type, title, data) {
+    if (!session) return null;
+    const row = await db.saveItem(session.user.id, grade, subjectId, type, { title, data });
+    setSavedItems((prev) => [row, ...prev]);
+    return row;
+  }
+
+  async function saveCurrentNote() {
+    if (!notesData || notesData.id || !session) return;
+    setItemSaveStatus("saving");
+    try {
+      const row = await persistItem("notes", notesData.title, { sections: notesData.sections });
+      setNotesData((d) => (d ? { ...d, id: row.id } : d));
+      setItemSaveStatus("saved");
+      setTimeout(() => setItemSaveStatus((s) => (s === "saved" ? null : s)), 1500);
+    } catch (e) {
+      setItemSaveStatus(null);
+    }
+  }
+
+  async function saveCurrentFlashcards() {
+    if (!flashcardsData || flashcardsData.id || !session) return;
+    setItemSaveStatus("saving");
+    try {
+      const row = await persistItem("flashcards", flashcardsData.topic, { cards: flashcardsData.cards });
+      setFlashcardsData((d) => (d ? { ...d, id: row.id } : d));
+      setItemSaveStatus("saved");
+      setTimeout(() => setItemSaveStatus((s) => (s === "saved" ? null : s)), 1500);
+    } catch (e) {
+      setItemSaveStatus(null);
+    }
+  }
+
+  async function saveCurrentMindmap() {
+    if (!mindmapData || mindmapData.id || !session) return;
+    setItemSaveStatus("saving");
+    try {
+      const row = await persistItem("mindmap", mindmapData.topic, { branches: mindmapData.branches });
+      setMindmapData((d) => (d ? { ...d, id: row.id } : d));
+      setItemSaveStatus("saved");
+      setTimeout(() => setItemSaveStatus((s) => (s === "saved" ? null : s)), 1500);
+    } catch (e) {
+      setItemSaveStatus(null);
+    }
+  }
+
+  async function saveCurrentQuiz() {
+    if (!quiz || quiz.id || !session) return;
+    setItemSaveStatus("saving");
+    try {
+      const row = await persistItem("quiz", quiz.topic, { questions: quiz.questions });
+      setQuiz((q) => (q ? { ...q, id: row.id } : q));
+      setItemSaveStatus("saved");
+      setTimeout(() => setItemSaveStatus((s) => (s === "saved" ? null : s)), 1500);
+    } catch (e) {
+      setItemSaveStatus(null);
+    }
+  }
+
+  // Optimistic delete: the item disappears from whichever list you're
+  // looking at (the per-subject notes strip, or the cross-subject Saved
+  // tab) immediately, but the actual database delete is deferred ~5s
+  // behind an "Undo" toast so an accidental tap can be reversed (see
+  // pendingItemDelete state + the toast render below). Only one delete can
+  // be "in flight" at a time — starting a new one commits whichever was
+  // already pending, rather than trying to juggle multiple undo windows.
+  // Reads pendingItemDelete from the closure rather than a functional
+  // setState updater — an updater here would need clearTimeout/db calls
+  // inside it, and StrictMode's dev-only double-invoke of updater functions
+  // (to catch exactly this kind of impurity) was firing those side effects
+  // twice and leaving the state inconsistent. This is a plain event-handler
+  // read, so the closure's value is always the one from the render that
+  // attached this click handler — correct here.
+  function requestDeleteSavedItem(item) {
+    if (pendingItemDelete) {
+      clearTimeout(pendingItemDelete.timerId);
+      db.deleteSavedItem(pendingItemDelete.item.id).catch(() => {});
+    }
+    const timerId = setTimeout(() => {
+      db.deleteSavedItem(item.id).catch(() => {});
+      setPendingItemDelete((c) => (c && c.item.id === item.id ? null : c));
+    }, 5000);
+    setPendingItemDelete({ item, timerId });
+    setSavedItems((prev) => prev.filter((n) => n.id !== item.id));
+    setAllSavedItems((prev) => prev.filter((n) => n.id !== item.id));
+  }
+
+  function undoDeleteSavedItem() {
+    if (!pendingItemDelete) return;
+    clearTimeout(pendingItemDelete.timerId);
+    const restore = (prev) => [pendingItemDelete.item, ...prev].sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""));
+    setSavedItems(restore);
+    setAllSavedItems(restore);
+    setPendingItemDelete(null);
   }
 
   async function generateFlashcards(topic) {
@@ -1060,6 +1224,14 @@ export default function BoardCompanion() {
           <div style={{ height: 1, background: "#C9DDC3", margin: "14px 0" }} />
 
           <button
+            onClick={() => setTab("saved")}
+            style={{ ...styles.subjectBtn, ...(tab === "saved" ? styles.subjectBtnActive : {}), fontWeight: 600 }}
+          >
+            <Bookmark size={17} />
+            <span>Saved</span>
+          </button>
+
+          <button
             onClick={() => setTab("progress")}
             style={{ ...styles.subjectBtn, ...(tab === "progress" ? styles.subjectBtnActive : {}), fontWeight: 600 }}
           >
@@ -1167,6 +1339,29 @@ export default function BoardCompanion() {
                 )}
               </div>
 
+              {savedItems.some((i) => i.type === "notes") && (
+                <div className="fade-in" style={styles.savedNotesRow}>
+                  <span style={styles.savedNotesLabel}>Saved notes:</span>
+                  {savedItems.filter((i) => i.type === "notes").map((n) => (
+                    <div key={n.id} style={styles.savedNoteChip}>
+                      <button
+                        onClick={() => { clearActivities(); setNotesData({ title: n.title, sections: n.data.sections, id: n.id }); }}
+                        style={styles.savedNoteChipBtn}
+                      >
+                        {n.title}
+                      </button>
+                      <button
+                        onClick={() => requestDeleteSavedItem(n)}
+                        style={styles.savedNoteChipDelete}
+                        aria-label={`Delete ${n.title}`}
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {showTimer && <StudyTimer onClose={() => setShowTimer(false)} />}
 
               {pendingAction && (
@@ -1218,13 +1413,37 @@ export default function BoardCompanion() {
                   </div>
                 ))}
 
-                {notesData && <NotesCard data={notesData} />}
-                {flashcardsData && <FlashcardDeck data={flashcardsData} />}
-                {mindmapData && <MindMapView data={mindmapData} />}
+                {notesData && (
+                  <NotesCard
+                    data={notesData}
+                    loading={loading}
+                    onBack={clearActivities}
+                    onRegenerate={() => generateNotes(notesData.title)}
+                    onSave={saveCurrentNote}
+                    saveStatus={itemSaveStatus}
+                  />
+                )}
+                {flashcardsData && (
+                  <FlashcardDeck data={flashcardsData} onSave={saveCurrentFlashcards} saveStatus={itemSaveStatus} />
+                )}
+                {mindmapData && (
+                  <MindMapView data={mindmapData} onSave={saveCurrentMindmap} saveStatus={itemSaveStatus} />
+                )}
 
                 {quiz && (
                   <div className="fade-in" style={styles.quizCard}>
-                    <div style={styles.quizTopic}>Quiz · {quiz.topic}</div>
+                    <div style={styles.quizTopicRow}>
+                      <div style={styles.quizTopic}>Quiz · {quiz.topic}</div>
+                      <button
+                        onClick={saveCurrentQuiz}
+                        disabled={Boolean(quiz.id) || itemSaveStatus === "saving"}
+                        style={styles.notebookIconBtn}
+                        aria-label={quiz.id ? "Already saved" : "Save quiz"}
+                        title={quiz.id ? "Saved" : "Save this quiz to retake later"}
+                      >
+                        {quiz.id || itemSaveStatus === "saved" ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
+                      </button>
+                    </div>
                     {quiz.questions.map((q, qi) => (
                       <div key={qi} style={styles.quizQ}>
                         <div style={styles.quizQText}>{qi + 1}. {q.q}</div>
@@ -1288,6 +1507,13 @@ export default function BoardCompanion() {
                 </button>
               </div>
             </>
+          ) : tab === "saved" ? (
+            <SavedItemsView
+              items={allSavedItems}
+              subjects={SUBJECTS}
+              onOpen={openSavedItem}
+              onDelete={requestDeleteSavedItem}
+            />
           ) : (
             <ProgressReport
               styles={styles}
@@ -1309,27 +1535,84 @@ export default function BoardCompanion() {
       </div>
       </>
       )}
+      {pendingItemDelete && (
+        <div className="fade-in" style={styles.undoToast}>
+          <span>{ITEM_TYPE_LABEL[pendingItemDelete.item.type] || "Item"} deleted</span>
+          <button onClick={undoDeleteSavedItem} style={styles.undoToastBtn}>
+            <RotateCcw size={13} /> Undo
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
-/* ---------- Visual: Notes card ---------- */
+/* ---------- Visual: Notes card ----------
+   Styled as a notebook page (dot-grid paper + a green spiral binding along
+   the left edge) per the student's reference image, restyled from the
+   reference's red binding to the app's own-green palette. Back arrow clears
+   the notes (clearActivities()); the sparkle button re-generates notes for
+   the same resolved topic (data.title) rather than re-asking the student to
+   retype it; expand toggles a fullscreen overlay for easier reading. */
 
-function NotesCard({ data }) {
-  return (
-    <div className="fade-in" style={styles.notesCard}>
-      <div style={styles.notesTitle}>{data.title}</div>
-      {data.sections.map((sec, i) => (
-        <div key={i} style={styles.notesSection}>
-          <div style={styles.notesHeading}>{sec.heading}</div>
-          <ul style={styles.notesList}>
-            {sec.points.map((p, j) => (
-              <li key={j} style={styles.notesPoint}>{p}</li>
-            ))}
-          </ul>
-        </div>
-      ))}
+function NotesCard({ data, loading, onBack, onRegenerate, onSave, saveStatus }) {
+  const [expanded, setExpanded] = useState(false);
+  const saved = Boolean(data.id);
+
+  const card = (
+    <div className="fade-in" style={expanded ? styles.notebookPageExpanded : styles.notebookPage}>
+      <div style={styles.notebookSpiral} />
+      <button onClick={onBack} style={styles.notebookBackBtn} aria-label="Close notes">
+        <ArrowLeft size={18} />
+      </button>
+      <div style={styles.notebookContent}>
+        <div style={styles.notesTitle}>{data.title}</div>
+        {data.sections.map((sec, i) => (
+          <div key={i} style={styles.notesSection}>
+            <div style={styles.notesHeading}>{sec.heading}</div>
+            <ul style={styles.notesList}>
+              {sec.points.map((p, j) => (
+                <li key={j} style={styles.notesPoint}>{p}</li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+      <div style={styles.notebookIconRow}>
+        <button
+          onClick={onSave}
+          disabled={saved || saveStatus === "saving"}
+          style={{ ...styles.notebookIconBtn, opacity: saveStatus === "saving" ? 0.6 : 1 }}
+          aria-label={saved ? "Already saved" : "Save notes"}
+          title={saved ? "Saved" : "Save these notes to your account"}
+        >
+          {saved || saveStatus === "saved" ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
+        </button>
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          style={styles.notebookIconBtn}
+          aria-label={expanded ? "Collapse" : "Expand"}
+        >
+          {expanded ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+        </button>
+        <button
+          onClick={onRegenerate}
+          disabled={loading}
+          style={{ ...styles.notebookIconBtn, opacity: loading ? 0.6 : 1 }}
+          aria-label="Regenerate notes"
+        >
+          {loading ? <Loader2 size={15} style={{ animation: "spin 1s linear infinite" }} /> : <Sparkles size={15} />}
+        </button>
+      </div>
     </div>
+  );
+
+  if (!expanded) return card;
+  return (
+    <>
+      <div style={styles.notebookBackdrop} onClick={() => setExpanded(false)} />
+      {card}
+    </>
   );
 }
 
@@ -1463,11 +1746,12 @@ function StudyTimer({ onClose }) {
 
 /* ---------- Visual: Flashcard deck (single-card reveal, like Anki/Quizlet) ---------- */
 
-function FlashcardDeck({ data }) {
+function FlashcardDeck({ data, onSave, saveStatus }) {
   const [index, setIndex] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const cards = data.cards || [];
   const card = cards[index];
+  const saved = Boolean(data.id);
 
   function go(delta) {
     setRevealed(false);
@@ -1480,7 +1764,18 @@ function FlashcardDeck({ data }) {
     <div className="fade-in" style={styles.fcWrap}>
       <div style={styles.fcTopRow}>
         <div style={styles.fcTopic}>{data.topic}</div>
-        <div style={styles.fcCounter}>{index + 1} / {cards.length}</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={styles.fcCounter}>{index + 1} / {cards.length}</div>
+          <button
+            onClick={onSave}
+            disabled={saved || saveStatus === "saving"}
+            style={styles.notebookIconBtn}
+            aria-label={saved ? "Already saved" : "Save flashcards"}
+            title={saved ? "Saved" : "Save this deck to your account"}
+          >
+            {saved || saveStatus === "saved" ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}
+          </button>
+        </div>
       </div>
       <div style={styles.fcCard} onClick={() => setRevealed((r) => !r)}>
         <div style={styles.fcQuestion}>{card.front}</div>
@@ -1511,7 +1806,8 @@ function estWidth(text, fontSize = 12.5) {
   return Math.max(90, Math.round(text.length * fontSize * 0.56) + 26);
 }
 
-function MindMapView({ data }) {
+function MindMapView({ data, onSave, saveStatus }) {
+  const saved = Boolean(data.id);
   // Keyed by branch index, not label text — two AI-generated branches can
   // legitimately share a label (e.g. two "Examples" branches), and keying
   // by text would make toggling one silently toggle both.
@@ -1570,6 +1866,15 @@ function MindMapView({ data }) {
         </button>
         <button style={styles.mmCtrlBtn} onClick={() => setZoom((z) => Math.min(1.6, z + 0.15))} title="Zoom in">+</button>
         <button style={styles.mmCtrlBtn} onClick={() => setZoom((z) => Math.max(0.5, z - 0.15))} title="Zoom out">−</button>
+        <button
+          style={styles.mmCtrlBtn}
+          onClick={onSave}
+          disabled={saved || saveStatus === "saving"}
+          title={saved ? "Saved" : "Save this mind map to your account"}
+          aria-label={saved ? "Already saved" : "Save mind map"}
+        >
+          {saved || saveStatus === "saved" ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
+        </button>
       </div>
       <div style={styles.mmScroll}>
         <svg
@@ -1637,7 +1942,58 @@ function MindMapView({ data }) {
   );
 }
 
-/* ---------- Progress report ---------- */
+/* ---------- Saved tab: every saved note/flashcards/mind map/quiz, across
+   every subject and grade — the per-subject notebook-page notes list only
+   ever shows the current subject, so this is the one place a student can
+   browse and reopen everything they've kept. ---------- */
+
+function SavedItemsView({ items, subjects, onOpen, onDelete }) {
+  if (items.length === 0) {
+    return (
+      <div style={styles.savedEmptyState}>
+        Nothing saved yet — tap the bookmark icon on any notes, flashcards, mind map, or quiz to keep it here.
+      </div>
+    );
+  }
+
+  const groups = {};
+  items.forEach((item) => {
+    const key = `${item.grade}:${item.subject_id}`;
+    (groups[key] = groups[key] || []).push(item);
+  });
+
+  return (
+    <div style={styles.savedView}>
+      <div style={styles.savedViewTitle}>Saved</div>
+      {Object.entries(groups).map(([key, groupItems]) => {
+        const [g, subjectId] = key.split(":");
+        const subject = subjects.find((s) => s.id === subjectId);
+        return (
+          <div key={key} style={styles.savedGroup}>
+            <div style={styles.savedGroupTitle}>{subject?.label || subjectId} · Grade {g}</div>
+            <div style={styles.savedGroupList}>
+              {groupItems.map((item) => {
+                const Icon = ITEM_TYPE_ICON[item.type] || Bookmark;
+                return (
+                  <div key={item.id} style={styles.savedItemRow}>
+                    <button onClick={() => onOpen(item)} style={styles.savedItemBtn}>
+                      <Icon size={15} style={{ flexShrink: 0, color: "#4A5A2E" }} />
+                      <span style={styles.savedItemLabel}>{ITEM_TYPE_LABEL[item.type]}</span>
+                      <span style={styles.savedItemTitle}>{item.title}</span>
+                    </button>
+                    <button onClick={() => onDelete(item)} style={styles.savedNoteChipDelete} aria-label={`Delete ${item.title}`}>
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 /* ---------- Styles (Punjab Board register theme) ---------- */
 
@@ -1852,7 +2208,8 @@ const styles = {
     flexShrink: 0,
   },
   quizCard: { background: "#fff", border: "1px solid #C9DDC3", borderRadius: 18, padding: 18 },
-  quizTopic: { fontWeight: 700, fontSize: 14, marginBottom: 12, fontFamily: "Arial, sans-serif", color: "#1B3B2F" },
+  quizTopicRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 12 },
+  quizTopic: { fontWeight: 700, fontSize: 14, fontFamily: "Arial, sans-serif", color: "#1B3B2F" },
   quizQ: { marginBottom: 16 },
   quizQText: { fontSize: 13.5, marginBottom: 7, fontFamily: "Arial, sans-serif", fontWeight: 600 },
   quizOpt: {
@@ -1906,6 +2263,100 @@ const styles = {
   notesHeading: { fontSize: 13, fontWeight: 700, color: "#1B3B2F", fontFamily: "Arial, sans-serif", marginBottom: 5 },
   notesList: { margin: 0, paddingLeft: 18 },
   notesPoint: { fontSize: 12.5, color: "#2F3D30", fontFamily: "Arial, sans-serif", lineHeight: 1.65, marginBottom: 2 },
+
+  /* Notebook-page notes (dot-grid paper + green spiral binding) */
+  notebookPage: {
+    position: "relative", background: "#FBFDFA",
+    backgroundImage: "radial-gradient(circle, #C9DDC3 1px, transparent 1px)",
+    backgroundSize: "18px 18px",
+    border: "1px solid #C9DDC3", borderRadius: 18, overflow: "hidden",
+    padding: "44px 20px 54px 54px",
+    boxShadow: "0 1px 3px rgba(27,59,47,0.08)",
+  },
+  notebookPageExpanded: {
+    position: "fixed", top: 24, left: 24, right: 24, bottom: 24, zIndex: 1000,
+    background: "#FBFDFA",
+    backgroundImage: "radial-gradient(circle, #C9DDC3 1px, transparent 1px)",
+    backgroundSize: "18px 18px",
+    border: "1px solid #C9DDC3", borderRadius: 18, overflow: "auto",
+    padding: "44px 24px 54px 54px",
+    boxShadow: "0 12px 40px rgba(27,59,47,0.35)",
+  },
+  notebookBackdrop: { position: "fixed", inset: 0, background: "rgba(27,59,47,0.35)", zIndex: 999 },
+  notebookSpiral: {
+    position: "absolute", top: 0, left: 0, bottom: 0, width: 40,
+    backgroundImage:
+      `url("data:image/svg+xml,${encodeURIComponent(
+        "<svg xmlns='http://www.w3.org/2000/svg' width='40' height='34'><ellipse cx='4' cy='17' rx='15' ry='13' fill='none' stroke='#6B7A3D' stroke-width='5'/></svg>"
+      )}")`,
+    backgroundRepeat: "repeat-y", backgroundPosition: "left top", backgroundSize: "40px 34px",
+    pointerEvents: "none",
+  },
+  notebookBackBtn: {
+    position: "absolute", top: 12, left: 52,
+    background: "transparent", border: "none", color: "#1B3B2F", cursor: "pointer",
+    display: "flex", alignItems: "center", justifyContent: "center", padding: 4,
+  },
+  notebookContent: { position: "relative" },
+  notebookIconRow: { position: "absolute", bottom: 14, right: 14, display: "flex", gap: 8 },
+  notebookIconBtn: {
+    width: 34, height: 34, borderRadius: 10, background: "#EAF3E7", border: "1px solid #C9DDC3",
+    display: "flex", alignItems: "center", justifyContent: "center", color: "#1B3B2F", cursor: "pointer",
+  },
+
+  /* Saved notes row + undo toast */
+  savedNotesRow: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: 10 },
+  savedNotesLabel: { fontSize: 11.5, color: "#4A5A2E", fontFamily: "Arial, sans-serif", fontWeight: 700, flexShrink: 0 },
+  savedNoteChip: {
+    display: "flex", alignItems: "center", gap: 4, background: "#F3FAF0", border: "1px solid #C9DDC3",
+    borderRadius: 999, padding: "4px 4px 4px 12px",
+  },
+  savedNoteChipBtn: {
+    background: "none", border: "none", color: "#1B3B2F", fontSize: 12, fontFamily: "Arial, sans-serif",
+    cursor: "pointer", padding: 0,
+  },
+  savedNoteChipDelete: {
+    background: "none", border: "none", color: "#8A9A7E", cursor: "pointer",
+    display: "flex", alignItems: "center", justifyContent: "center", padding: 6, borderRadius: 999,
+  },
+  undoToast: {
+    position: "fixed", left: "50%", bottom: 24, transform: "translateX(-50%)", zIndex: 1100,
+    background: "#1B3B2F", color: "#FBFDFA", borderRadius: 999, padding: "10px 10px 10px 18px",
+    display: "flex", alignItems: "center", gap: 12, fontSize: 13, fontFamily: "Arial, sans-serif",
+    boxShadow: "0 8px 24px rgba(27,59,47,0.35)",
+  },
+  undoToastBtn: {
+    background: "#0F6B4F", color: "#FBFDFA", border: "none", borderRadius: 999, padding: "6px 12px",
+    display: "flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 700, cursor: "pointer",
+    fontFamily: "Arial, sans-serif",
+  },
+
+  /* Saved tab */
+  savedEmptyState: {
+    color: "#6B7A3D", fontSize: 13.5, fontFamily: "Arial, sans-serif", textAlign: "center",
+    padding: "60px 20px", maxWidth: 420, margin: "0 auto",
+  },
+  savedView: { display: "flex", flexDirection: "column", gap: 22 },
+  savedViewTitle: { fontSize: 22, fontFamily: "'Georgia', serif", color: "#1B3B2F" },
+  savedGroup: { display: "flex", flexDirection: "column", gap: 8 },
+  savedGroupTitle: { fontSize: 12.5, fontWeight: 700, color: "#4A5A2E", fontFamily: "Arial, sans-serif", textTransform: "uppercase", letterSpacing: 0.3 },
+  savedGroupList: { display: "flex", flexDirection: "column", gap: 6 },
+  savedItemRow: {
+    display: "flex", alignItems: "center", gap: 8, background: "#fff", border: "1px solid #C9DDC3",
+    borderRadius: 12, padding: "10px 8px 10px 14px",
+  },
+  savedItemBtn: {
+    flex: 1, display: "flex", alignItems: "center", gap: 10, background: "none", border: "none",
+    cursor: "pointer", textAlign: "left", padding: 0, minWidth: 0,
+  },
+  savedItemLabel: {
+    fontSize: 10.5, fontWeight: 700, color: "#4A5A2E", fontFamily: "Arial, sans-serif",
+    textTransform: "uppercase", letterSpacing: 0.3, flexShrink: 0,
+  },
+  savedItemTitle: {
+    fontSize: 13, color: "#1B3B2F", fontFamily: "Arial, sans-serif",
+    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+  },
 
   /* Flashcard deck */
   fcWrap: { display: "flex", flexDirection: "column", alignItems: "center", gap: 12 },
