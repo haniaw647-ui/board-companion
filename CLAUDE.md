@@ -213,9 +213,9 @@ chapter title lists (factual structure, not the book's prose) — see
   explain "in your own words" / not quote or paraphrase textbook prose.
 - Grade 12 content must follow the same rule: chapter-title lists only,
   never full text. See `SYLLABUS_12` in `src/App.jsx` — Physics, Chemistry,
-  Biology, Math, English, Computer Science, and the new Pakistan Studies
-  subject are done this way; Urdu is intentionally partial (see below);
-  Islamiat and Tarjumah-tul-Quran have no Grade 12 source PDF yet.
+  Biology, Math, English, Computer Science, Pakistan Studies, Urdu, and
+  Tarjumah-tul-Quran are all done this way; Islamiat has no Grade 12
+  source PDF yet.
 - If a future feature would need the actual textbook prose (e.g. "quote
   the exact definition from the book"), don't build it — that's exactly
   what the notice prohibits.
@@ -357,13 +357,23 @@ terracotta," "no green," "match the last green") — just ask what's wanted.
 
 ## Known gaps / natural next steps
 
-1. **Grade 12 syllabus is fully wired up for 8 of the 10 subjects.**
-   Physics, Chemistry, Biology, Math, English, Computer Science, Urdu, and
-   Pakistan Studies (see `SYLLABUS_12` in `src/App.jsx`) are all done.
-   Islamiat and Tarjumah-tul-Quran have no Grade 12 source PDF uploaded
-   yet; if they get uploaded, repeat the same TOC-extraction approach (see
-   the copyright section above for the per-subject techniques, including
-   Urdu's glossary-index method).
+1. **Grade 12 syllabus is fully wired up for 9 of the 10 subjects.**
+   Physics, Chemistry, Biology, Math, English, Computer Science, Urdu,
+   Pakistan Studies, and Tarjumah-tul-Quran (see `SYLLABUS_12` in
+   `src/App.jsx`) are all done. Tarjumah-tul-Quran's Grade 12 book
+   (`Downloads\Tarjumah-tul-Quran\2343-12th-class-tarjuma-tul-quran-...pdf`)
+   has no text layer but a clean table-of-contents page (page 3, right at
+   the front) listing each surah + page number — no OCR needed, just read
+   directly off a rendered PNG. Unlike Grade 11 (selected ayat ranges
+   within longer surahs), Grade 12 translates 17 shorter surahs in full
+   (An-Nisa through At-Tahrim); front matter (recitation etiquette,
+   general guidance, learning outcomes) and back matter (model paper,
+   punctuation-marks reference, certificate) were left out as non-chapter
+   content, same principle as every other subject's SYLLABUS_12 entry.
+   Islamiat has no Grade 12 source PDF uploaded yet; if it gets uploaded,
+   repeat the same TOC-extraction approach (see the copyright section
+   above for the per-subject techniques, including Urdu's glossary-index
+   method).
 2. Grade 11 English's syllabus is a rough 3-strand summary
    (Vocabulary/Grammar, Oral Communication, Writing Skills across 14
    units) rather than named chapters, since that textbook's table of

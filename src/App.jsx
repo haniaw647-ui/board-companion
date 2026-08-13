@@ -159,10 +159,9 @@ const SYLLABUS_11 = {
    Grade 11 above. Chapter numbering continues from Grade 11 where the
    official book does (e.g. Chemistry 17-33, Biology 13-25) — left as-is
    rather than renumbered, so it matches what's printed in the real
-   textbook. Islamiat and Tarjumah-tul-Quran have no Grade 12 source PDF
-   yet, so they're absent here (the tutor falls back to asking the student
-   to confirm the chapter name, same as any other subject/grade with no
-   confirmed list). ---------- */
+   textbook. Islamiat has no Grade 12 source PDF yet, so it's absent here
+   (the tutor falls back to asking the student to confirm the chapter name,
+   same as any other subject/grade with no confirmed list). ---------- */
 
 const SYLLABUS_12 = {
   physics: [
@@ -281,6 +280,19 @@ const SYLLABUS_12 = {
       "Ghazal (Ada Jafri)", "Ghazal (Mohsin Ehsan)",
     ],
   },
+  // Unlike Grade 11 (selected ayat ranges within longer surahs), this book
+  // translates each of these surahs in full — read directly off a clean
+  // table-of-contents page (page 3), no OCR needed. Front matter (recitation
+  // etiquette, general guidance, learning outcomes) and back matter (model
+  // paper, punctuation-marks reference, certificate) are listed in the book
+  // but left out here since they aren't teachable chapter content.
+  tarjumah: [
+    "Surah An-Nisa", "Surah Al-Ma'idah", "Surah An-Nur", "Surah Al-Ahzab",
+    "Surah Muhammad", "Surah Al-Fath", "Surah Al-Hujurat", "Surah Al-Hadid",
+    "Surah Al-Mujadila", "Surah Al-Hashr", "Surah Al-Mumtahina", "Surah As-Saff",
+    "Surah Al-Jumu'ah", "Surah Al-Munafiqun", "Surah At-Taghabun",
+    "Surah At-Talaq", "Surah At-Tahrim",
+  ],
 };
 
 function syllabusFor(grade, subjectId) {
